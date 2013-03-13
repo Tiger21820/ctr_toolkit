@@ -1,0 +1,102 @@
+# These are the Title Strings used by the end user to identify this application on the Home Menu, and in other places
+ApplicationTitleData:
+  Japanese:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  English:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  French:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  German:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  Italian:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  Spanish:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  Chinese:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  Korean:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  Dutch:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  Portuguese:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+  Russian:
+    ShortTitle: "Application"
+    LongTitle: "Application"
+    Publisher: "Publisher"
+
+Options:
+  Flags: #these are boolean values true/false
+    # AutoBoot is a flag only used with applications launched from a card. It signals Home Menu
+    # to load the application automatically on boot, without loading the Home Menu GUI.
+    AutoBoot: true
+	
+    # Flag3DEffect is used to signal to the Home Menu that the application uses the '3D Effect' for
+    # 'Parental Control' purposes, it has no bearing on whether an application can/will use the
+    # '3D Effect'	
+    Flag3DEffect: true
+	
+    # RequireAcceptEULA is used to signal to the Home Menu that the application will use features
+    # (such as CEC and BOSS) which require accepting the 3DS EULA before use.
+    RequireAcceptEULA: true
+	
+    # AutoSaveOnExit signals the Home Menu to make the application save when the user quits to the Home Menu.
+    # Note, this can cause the Home Menu to hang if the application doesn't use any save data.
+    AutoSaveOnExit: true
+	
+    # UseExtendedBanner signals the Home Menu that the application uses an Extended Banner. 
+    UseExtendedBanner: true
+	
+    # UseAgeRestrictions signals the Home Menu that 'Parental Controls' in relation to 'Age Restrictions'
+    # can be used with this application. The age restrictions can be specified under "RegionRatings"
+    UseAgeRestrictions: true
+	
+    # UseSaveData signals the Home Menu that this application uses save data
+    UseSaveData: true
+	
+  # Region Lockout is used to restrict what regions of 3DS can use software on the Home Menu,
+  # you can choose to create no restrictions by specifying "All" or "Region_Free".
+  # Alternatively if you can pick from the following regions to region lock your application:
+  # "Japan", "America", "Europe", "Korea", "Taiwan" and "China"
+  RegionLockout: Europe
+  
+  # The 'OptimalBNRFrame' is the default frame for an animated banner when represtented on the Home Menu,
+  # generally this will be "1"
+  OptimalBNRFrame: 241.21
+  
+IDs:
+  MatchMakerID: AAAAAAAAA # An 8 digit HEX ID 
+  MatchMakerBITID: BBBBBBBBBBBBBBBBB # A 16 digit HEX ID
+  CECID: CCCCCCCCC # An 8 digit HEX ID 
+
+# These Are Region Age Restriction Settings. Only the first two numbers are read, and the max age is 20.
+# Next to each region are a list of acceptable age restrictions. This section will be ignored if
+# "UseAgeRestrictions"  isn't "true".
+RegionRatings:
+  Japan: 18 #CERO Rating: 0/12/15/17/18
+  USA: 17 #ESRB Rating: 3/6/10/13/17
+  German: 17 #USK Rating: 0/6/12/16/17
+  Europe: 18 #PEGI_GEN Rating: 3/7/12/16/18
+  Portugual: 18 #PEGI_PRT Rating: 4/6/12/16/18
+  England: 18 #PEGI_BBFC Rating: 3/4/7/8/12/15/16/18
+  Australia: 18 #COB Rating: 0/7/14/15/18
