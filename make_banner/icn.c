@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "icn.h"
-#include "api/lib.h"
+#include "utils.h"
 
 int icn_main(ICN_CONTEXT icn)
 {

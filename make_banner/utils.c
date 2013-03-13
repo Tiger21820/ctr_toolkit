@@ -10,7 +10,7 @@ Author: 3DSGuy
 #include <stdint.h>
 #include <string.h>
 
-#include "lib.h"
+#include "utils.h"
 
 void char_to_int_array(unsigned char destination[], unsigned char source[], int size, int endianness, int base)
 {	
