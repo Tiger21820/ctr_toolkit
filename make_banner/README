@@ -3,6 +3,12 @@ Version: 1.0
 
 2013 (c) 3DSGuy
 
+/******** Downloads ********/
+
+Windows (32-Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_1.0_windows.7z
+
+Linux (32 Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_1.0_linux.7z
+
 /******** Usage Examples ********/
 
 "make_banner --bnr -g Project/graphics.cbmd -a Project/audio.bcwav -o Project/banner.bnr"
@@ -16,7 +22,7 @@ If you don't have a means to test the output on a 3DS, the output can be checked
 
 /******** Creating Input Files ********/
 
-Check the BSF comments for customising the BSF file.(The BSF file is a YAML file, which can be viewed and edited
+Check the Banner Specification File (.BSF) comments for customising the BSF file.(The BSF file is a YAML file, which can be viewed and edited
 in a text editor.
 
 Generating .ctpk/.cwav/.cbmd TODO
