@@ -438,7 +438,7 @@ int icn_read(FILE *icn)
 	u8 flag_bool[8];
 	//byte[0] flags
 	resolve_flag(byte_flags[0],flag_bool);
-	//printf("Visability Flag:		%s\n",flag_bool[0]? "YES" : "NO");
+	//printf(" > Visability Flag:		%s\n",flag_bool[0]? "YES" : "NO");
 	printf(" > AutoBoot Application:	%s\n",flag_bool[1]? "YES" : "NO");
 	printf(" > Uses 3D Effect:		%s\n",flag_bool[2]? "YES" : "NO");
 	printf(" > Requires Accepting EULA:	%s\n",flag_bool[3]? "YES" : "NO");
@@ -455,7 +455,13 @@ int icn_read(FILE *icn)
 		}
 	}
 	printf(" > Use Save Data:		%s\n",flag_bool[7]? "YES" : "NO");
-	//printf("\n\n");
+	
+	//byte[1] flags
+	resolve_flag(byte_flags[1],flag_bool);
+	// This appears to be a general indicator, rather than an enforcer
+	// Official Apps which "don't" return to the home menu, don't have 
+	// this set.
+	printf(" > Allow Return to Home Menu:	%s\n",flag_bool[0]? "YES" : "NO");
 
 	/** Region Lock **/
 	// Well my current theory which is Region locking is just bitmask magic. Will have to confirm.
@@ -520,6 +526,8 @@ void print_title(int offset, int size, FILE *file)
 		u8 tmp = fgetc(file);
 		if(tmp == 0x0)
 			break;
+		else if(tmp == 0x0a)
+			printf("\n		");
 		else
 			printf("%c",tmp);
 		
