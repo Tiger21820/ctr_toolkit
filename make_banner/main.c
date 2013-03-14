@@ -132,7 +132,7 @@ void read_icn_process(int argc, char *argv[])
 	//Opening Input File
 	FILE *icn = fopen(argv[2],"rb");
 	if (icn == NULL){
-		printf("[!] Could not create [%s]\n", argv[2]);
+		printf("[!] Could not open [%s]\n", argv[2]);
 		exit(FILE_OPEN_FAIL);
 	}
 	

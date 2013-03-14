@@ -438,7 +438,7 @@ int icn_read(FILE *icn)
 	u8 flag_bool[8];
 	//byte[0] flags
 	resolve_flag(byte_flags[0],flag_bool);
-	//printf(" > Visability Flag:		%s\n",flag_bool[0]? "YES" : "NO");
+	printf(" > Visable:			%s\n",flag_bool[0]? "YES" : "NO");
 	printf(" > AutoBoot Application:	%s\n",flag_bool[1]? "YES" : "NO");
 	printf(" > Uses 3D Effect:		%s\n",flag_bool[2]? "YES" : "NO");
 	printf(" > Requires Accepting EULA:	%s\n",flag_bool[3]? "YES" : "NO");
