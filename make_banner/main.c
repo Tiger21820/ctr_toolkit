@@ -232,7 +232,7 @@ void bnr_process(int argc, char *argv[])
 void app_title(void)
 {
 	printf("CTR-SDK Development Tool - make_banner - Generates ICN/BNR files\n");
-	printf("Version: 1.0\n(c) 2013 3DSGuy\n\n");
+	printf("Version: 1.1\n(c) 2013 3DSGuy\n\n");
 }
 
 void help(char *app_name)
