@@ -24,8 +24,7 @@ Linux (32 Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_0.
 /******** Testing 'make_banner' ********/
 
 In directory 'Project' are stock standard input files. They can be used to generate working output.
-If you don't have a means to test the output on a 3DS, output '.icn' can be checked with make_banner,
-by using the following usage "make_banner --readicn test.icn" 
+If you don't have a means to test the output on a 3DS, output '.icn' can be checked with make_banner, by using the following usage "make_banner --readicn test.icn" 
 
 /******** Creating Input Files ********/
 

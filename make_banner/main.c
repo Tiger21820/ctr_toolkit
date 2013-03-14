@@ -240,8 +240,9 @@ void help(char *app_name)
 	printf("\nUsage: %s [mode] <arguments>\n", app_name);
 	putchar('\n');
 	printf("Modes:\n");
-	printf("  --icn			  Generate a ICN file.\n");
+	printf("  --icn			  Generate an ICN file.\n");
 	printf("  --bnr			  Generate a BNR file.\n");
+	printf("  --readicn file  	  Parse an ICN file.\n");
 	printf("  --help		  Show this text.\n");
 	putchar('\n');
 	printf("'ICN' Mode Arguments:\n");
