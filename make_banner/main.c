@@ -17,6 +17,7 @@
 #define FILE_CREATE_FAIL 2
 
 void icn_process(int argc, char *argv[]);
+void read_icn_process(int argc, char *argv[]);
 void bnr_process(int argc, char *argv[]);
 void app_title(void);
 void help(char *app_name);
@@ -34,6 +35,9 @@ int main(int argc, char *argv[])
 	} 
 	else if (strcmp(argv[1], "--icn") == 0){
 		icn_process(argc, argv);
+	}
+	else if (strcmp(argv[1], "--readicn") == 0){
+		read_icn_process(argc, argv);
 	}
 	else if (strcmp(argv[1], "--help") == 0){
 		help(argv[0]);
@@ -115,6 +119,35 @@ void icn_process(int argc, char *argv[])
 		printf("[!] ICN File Failed to Build. Error code: %d\n", icn_result);
 	}
 	free(outname);
+}
+
+void read_icn_process(int argc, char *argv[])
+{
+	if (argc != 3){
+		printf("[!] Bad Arguments\n");
+		help(argv[0]);
+		exit(1);
+	}	
+
+	//Opening Input File
+	FILE *icn = fopen(argv[2],"rb");
+	if (icn == NULL){
+		printf("[!] Could not create [%s]\n", argv[2]);
+		exit(FILE_OPEN_FAIL);
+	}
+	
+	//Creating ICN
+	int icn_result = icn_read(icn);
+
+	//Closing File Streams
+	fclose(icn);
+	
+	//Result
+	if(icn_result == SUCCESS)
+		printf("[*] ICN File Parsed Successfully\n");
+	else{
+		printf("[!] ICN File Could not be Parsed. Error code: %d\n", icn_result);
+	}
 }
 
 void bnr_process(int argc, char *argv[])

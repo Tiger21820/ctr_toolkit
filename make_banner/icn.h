@@ -15,6 +15,7 @@
 #define REGION_LOCKOUT_FAIL 4
 #define OPTM_BNR_FAIL 5
 #define ID_FAIL 6
+#define MAGIC_FAIL 7
 
 //Array Max Values
 #define MAX_READ_LEN 100
@@ -119,10 +120,24 @@ typedef struct
 } __attribute__((__packed__)) 
 ICN_CONTEXT; //Context for ICN creation
 
+/**
+typedef struct
+{
+	DWORD magic;
+	u8 reserved[4];
+	ICN_APP_TITLE_STRUCT title_array[0x10];
+	ICN_SETTINGS settings;
+} __attribute__((__packed__)) 
+ICN_STRUCTURE;
+**/
+
 //Prototypes
+int icn_read(FILE *icn);
 int icn_main(ICN_CONTEXT icn);
 int icn_title_proccess(ICN_CONTEXT icn);
 int icn_settings_proccess(ICN_CONTEXT icn);
 void icn_icon_proccess(ICN_CONTEXT icn);
 ICN_APP_TITLE_STRUCT string_ICN_conv(u8 *short_title, u8 *long_title, u8 *publisher);
+void print_title(int offset, int size, FILE *file);
+void resolve_flag(u8 flag, u8 *flag_bool);
 

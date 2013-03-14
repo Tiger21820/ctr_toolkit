@@ -375,3 +375,153 @@ ICN_APP_TITLE_STRUCT string_ICN_conv(u8* short_title, u8* long_title, u8* publis
 	}
     return tmp;
 }
+
+int icn_read(FILE *icn)
+{
+	DWORD magic;
+	fseek(icn,0x0,SEEK_SET);
+	fread(&magic, sizeof(magic), 1, icn);
+	if(magic != 0x48444D53){
+		printf("[!] ICN is corrupt (Magic not 'SMDH')\n");
+		return MAGIC_FAIL;
+	}
+	else
+		printf("[*] MAGIC = SMDH\n");
+	
+	
+	/** Application Title Strings **/
+	
+	u8 language_string[MAX_TITLE_NUM][20];
+	strcpy(language_string[0], "Japanese");
+	strcpy(language_string[1], "English");
+	strcpy(language_string[2], "French");
+	strcpy(language_string[3], "German");
+	strcpy(language_string[4], "Italian");
+	strcpy(language_string[5], "Spanish");
+	strcpy(language_string[6], "Chinese");
+	strcpy(language_string[7], "Korean");
+	strcpy(language_string[8], "Dutch");
+	strcpy(language_string[9], "Portuguese");
+	strcpy(language_string[10], "Russian");
+	/**
+	strcpy(language_string[11], "Unknown Language 0");
+	strcpy(language_string[12], "Unknown Language 1");
+	strcpy(language_string[13], "Unknown Language 2");
+	strcpy(language_string[14], "Unknown Language 3");
+	strcpy(language_string[15], "Unknown Language 4");
+	**/
+	
+	printf("\n[*] Application Title Strings:\n\n");
+	for(int i = 0; i < 11; i++){
+		printf("%s:\n",language_string[i]);
+		printf(" > Short Title:	");
+		print_title((0x8+(0x200*i)),0x40,icn);
+		printf("\n > Long Title:	");
+		print_title((0x8+(0x200*i)+0x80),0x50,icn);
+		printf("\n > Publisher:	");
+		print_title((0x8+(0x200*i)+0x180),0x40,icn);
+		putchar('\n');
+		//putchar('\n');
+	}
+	
+	/** BitMask Flags **/
+	printf("\n[*] Application Settings\n\nFlags:");
+	u8 region_rating_key[MAX_RATING_NUM][30] = {"Japan:			", "USA:			", "German:			", "Europe:			", "Portugual:			", "England:			", "Australia:			"};
+	u8 ratingindex[MAX_RATING_NUM] = {0,1,3,4,6,7,8};
+	fseek(icn, 0x2028, SEEK_SET);
+	u8 byte_flags[8];
+	fread(&byte_flags, 0x8,1,icn);
+	for(int i = 0; i < 8; i++){
+		printf(" %02x",byte_flags[i]);
+	}
+	printf("\n");
+	u8 flag_bool[8];
+	//byte[0] flags
+	resolve_flag(byte_flags[0],flag_bool);
+	//printf("Visability Flag:		%s\n",flag_bool[0]? "YES" : "NO");
+	printf(" > AutoBoot Application:	%s\n",flag_bool[1]? "YES" : "NO");
+	printf(" > Uses 3D Effect:		%s\n",flag_bool[2]? "YES" : "NO");
+	printf(" > Requires Accepting EULA:	%s\n",flag_bool[3]? "YES" : "NO");
+	printf(" > Autosave On Exit:		%s\n",flag_bool[4]? "YES" : "NO");
+	printf(" > Use an Extended Banner:	%s\n",flag_bool[5]? "YES" : "NO");
+	printf(" > Use Age Restrictions:	%s\n",flag_bool[6]? "YES" : "NO");
+	/** Age Restrictions, If used **/
+	if(flag_bool[6] == TRUE){
+		for(int i = 0; i < MAX_RATING_NUM; i++){
+			fseek(icn,(0x2008+ratingindex[i]),SEEK_SET);
+			u8 tmp = fgetc(icn);
+			if(tmp >= 0x80)
+				printf("   > %s%d\n",region_rating_key[i], (tmp - 0x80));
+		}
+	}
+	printf(" > Use Save Data:		%s\n",flag_bool[7]? "YES" : "NO");
+	//printf("\n\n");
+
+	/** Region Lock **/
+	// Well my current theory which is Region locking is just bitmask magic. Will have to confirm.
+	// From SDK 1.2.0 'China' encompases Taiwan 3DSs and 'Europe' encompases the now non-existant Australian 3DSs
+	fseek(icn,0x2018,SEEK_SET);
+	u8 region_lock[4];
+	fread(&region_lock,sizeof(region_lock),1,icn);
+	printf("\nRegion Lock: ");
+	for(int i = 0; i < 4; i++)
+		printf("%02x",region_lock[3-i]);
+	printf("\n");
+	u8 region_lock_bool[8];
+	resolve_flag(region_lock[0],region_lock_bool);
+	printf(" > Japan:			%s\n",region_lock_bool[0]? "YES" : "NO");
+	printf(" > USA:				%s\n",region_lock_bool[1]? "YES" : "NO");
+	printf(" > Europe:			%s\n",region_lock_bool[2]? "YES" : "NO");
+	//printf(" > Australia:			%s\n",region_lock_bool[3]? "YES" : "NO");
+	printf(" > China:			%s\n",region_lock_bool[4]? "YES" : "NO");
+	printf(" > Korea:			%s\n",region_lock_bool[5]? "YES" : "NO");
+	printf(" > Taiwan:			%s\n",region_lock_bool[6]? "YES" : "NO");
+	
+	printf("\n[*] Application IDs\n\n");
+	/** Chance Encounter Communications ID **/
+	fseek(icn,0x2034,SEEK_SET);
+	DWORD CECID;
+	fread(&CECID,sizeof(CECID),1,icn);
+	printf("CEC ID:				%08x\n",CECID);
+	
+	/** Match Maker ID **/
+	fseek(icn,0x201C,SEEK_SET);
+	DWORD mmID;
+	fread(&mmID,sizeof(mmID),1,icn);
+	printf("Match Maker ID:			%08x\n",mmID);
+	
+	/** Match Maker BIT ID **/
+	fseek(icn,0x2020,SEEK_SET);
+	DWORD mmBITID1;
+	DWORD mmBITID2;
+	fread(&mmBITID1,sizeof(mmBITID1),1,icn);
+	fread(&mmBITID2,sizeof(mmBITID2),1,icn);
+	printf("Match Maker BIT ID:		%08x%08x\n\n",mmBITID2,mmBITID1);
+	return 0;
+}
+
+void resolve_flag(u8 flag, u8 *flag_bool)
+{
+	u8 bit_mask[8] = {0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
+	for(int i = 0; i < 8; i++){
+		if (flag >= bit_mask[i]){
+			flag_bool[7-i] = TRUE;
+			flag -= bit_mask[i];
+		}
+		else
+			flag_bool[7-i] = FALSE;
+	}
+}
+
+void print_title(int offset, int size, FILE *file)
+{
+	for(int i = 0; i < size; i++){
+		fseek(file,(offset + (i*2)),SEEK_SET);
+		u8 tmp = fgetc(file);
+		if(tmp == 0x0)
+			break;
+		else
+			printf("%c",tmp);
+		
+	}
+}

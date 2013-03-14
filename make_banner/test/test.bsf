@@ -85,9 +85,9 @@ Options:
   OptimalBNRFrame: 241.21
   
 IDs:
-  MatchMakerID: AAAAAAAAA # An 8 digit HEX ID 
-  MatchMakerBITID: BBBBBBBBBBBBBBBBB # A 16 digit HEX ID
-  CECID: CCCCCCCCC # An 8 digit HEX ID 
+  MatchMakerID: 12345678 # An 8 digit HEX ID 
+  MatchMakerBITID: 112233445566778899 # A 16 digit HEX ID
+  CECID: 12345678 # An 8 digit HEX ID 
 
 # These Are Region Age Restriction Settings. Only the first two numbers are read, and the max age is 20.
 # Next to each region are a list of acceptable age restrictions. This section will be ignored if
