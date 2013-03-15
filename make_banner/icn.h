@@ -139,5 +139,4 @@ int icn_settings_proccess(ICN_CONTEXT icn);
 void icn_icon_proccess(ICN_CONTEXT icn);
 ICN_APP_TITLE_STRUCT string_ICN_conv(u8 *short_title, u8 *long_title, u8 *publisher);
 void print_title(int offset, int size, FILE *file);
-void resolve_flag(u8 flag, u8 *flag_bool);
 

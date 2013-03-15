@@ -6,6 +6,7 @@
 #define HEX 16
 #define DEC 10
 
+void resolve_flag(unsigned char flag, unsigned char *flag_bool);
 
 void char_to_int_array(unsigned char destination[], unsigned char source[], int size, int endianness, int base);
 void endian_strcpy(unsigned char destination[], unsigned char source[], int size, int endianness);

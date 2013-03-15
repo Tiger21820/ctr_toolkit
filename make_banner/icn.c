@@ -506,19 +506,6 @@ int icn_read(FILE *icn)
 	return 0;
 }
 
-void resolve_flag(u8 flag, u8 *flag_bool)
-{
-	u8 bit_mask[8] = {0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
-	for(int i = 0; i < 8; i++){
-		if (flag >= bit_mask[i]){
-			flag_bool[7-i] = TRUE;
-			flag -= bit_mask[i];
-		}
-		else
-			flag_bool[7-i] = FALSE;
-	}
-}
-
 void print_title(int offset, int size, FILE *file)
 {
 	for(int i = 0; i < size; i++){
