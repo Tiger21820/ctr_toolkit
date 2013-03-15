@@ -3,17 +3,23 @@ Version: 1.1
 
 2013 (c) 3DSGuy
 
+/******** Change Log ********/
+
+Version 1.1:
+* Added '--readicn' mode which allows checking of generated ICN files
+* Small bug fixes
+
+Version 1.0:
+* Initial Public release
+* Supports generating valid ICN / BNR files for the 3DS
+
 /******** Downloads ********/
 
-Version: 1.0:
+Version 1.0:
 
 Windows (32-Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_1.0_windows.7z
 
 Linux (32 Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_1.0_linux.7z
-
-Version: 0.9:
-
-Linux (32 Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_0.9_linux.7z
 
 /******** Usage Examples ********/
 
