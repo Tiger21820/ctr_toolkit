@@ -6,11 +6,21 @@
 
 int bnr_main(BNR_CONTEXT bnr)
 {
+	
 	//Calculate padding
 	DWORD padding = bnr.cbmd_header.file_size;
 	while(padding > 0x10)
 		padding -= 0x10;
 	padding = 0x10 - padding;
+	if(bnr.verbose_bool == TRUE){
+		printf("[+] Adding 0x%x bytes of padding to CBMD component\n",padding);
+		printf("[+] CWAV file is ");
+		if(bnr.cwav_header.endianness != 0xFEFF)
+			printf("Big Endian\n");
+		else
+			printf("Little Endian\n");
+	}
+		
 	
 	if(bnr.cwav_header.endianness != 0xFEFF){//Endianness check and recalculation if nesscicary
 		u8 tmp[4];
@@ -19,9 +29,13 @@ int bnr_main(BNR_CONTEXT bnr)
 		bnr.cwav_header.file_size = size_u8toDWORD(tmp);
 	}
 	
+	
 	//Calculate BNR filesize
 	DWORD bnr_size = bnr.cbmd_header.file_size + padding + bnr.cwav_header.file_size;
 	DWORD new_cbmd_size = bnr.cbmd_header.file_size + padding;
+	
+	if(bnr.verbose_bool == TRUE)
+		printf("[+] Input CBMD file size: 0x%x\n[+] Input CWAV file size: 0x%x\n[+] Output BNR file size: 0x%x\n",bnr.cbmd_header.file_size,bnr.cwav_header.file_size,bnr_size); 
 
 	//Fill-out Output file
 	fseek(bnr.output, (bnr_size - 0x1) , SEEK_SET);

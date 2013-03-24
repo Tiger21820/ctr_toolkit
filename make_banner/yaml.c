@@ -140,6 +140,11 @@ int key_scan_yaml(char *output, char tmp_store, int scan_size, FILE *file)
 					search_state = SEEK_KEY_START;
 					break;
 				}
+				if(tmp_store == '"'){
+					tmp_store = fgetc(file);
+					while(tmp_store != '"')
+						tmp_store = fgetc(file);
+				}
 				if(tmp_store == '\n'){
 					while(tmp_store == '\n')
 						tmp_store = fgetc(file);

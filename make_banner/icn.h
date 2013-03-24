@@ -20,7 +20,6 @@
 //Array Max Values
 #define MAX_READ_LEN 100
 #define MAX_TITLE_NUM 11
-#define MAX_TITLE_LEN 50
 #define SIZE_SHORT_TITLE 0x40
 #define SIZE_LONG_TITLE 0x50
 #define SIZE_PUBLISHER_TITLE 0x40
@@ -107,6 +106,7 @@ ICN_SETTINGS;
 typedef struct
 {
 	int RESULT_CODE;
+	u8 verbose_bool;
 
 	//INPUT
 	FILE *small; //Small Icon
@@ -132,7 +132,7 @@ ICN_STRUCTURE;
 **/
 
 //Prototypes
-int icn_read(FILE *icn);
+int icn_read(FILE *icn, u8 verbose);
 int icn_main(ICN_CONTEXT icn);
 int icn_title_proccess(ICN_CONTEXT icn);
 int icn_settings_proccess(ICN_CONTEXT icn);

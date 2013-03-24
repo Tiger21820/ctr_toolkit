@@ -28,6 +28,7 @@ CBMD_HEADER;
 typedef struct
 {
 	int RESULT_CODE;
+	u8 verbose_bool;
 
 	//INPUT
 	FILE *cbmd; //Banner Graphics File

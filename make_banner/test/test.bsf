@@ -1,21 +1,23 @@
 # These are the Title Strings used by the end user to identify this application on the Home Menu, and in other places
 ApplicationTitleData:
   Japanese:
-    ShortTitle: "Application"
-    LongTitle: "Application"
-    Publisher: "Publisher"
+    ShortTitle: "(Demo) MH3U"
+    LongTitle: "(Demo) MONSTER HUNTER 3 ULTIMATE"
+    Publisher: "CAPCOM"
   English:
-    ShortTitle: "Application"
-    LongTitle: "Application"
-    Publisher: "Publisher"
+    ShortTitle: "(Demo) Mirror of Fate"
+    LongTitle: "(Demo) Castlevania: Lords of
+Shadow - Mirror of Fate"
+    Publisher: "Konami Digital Entertainment"
   French:
-    ShortTitle: "Application"
-    LongTitle: "Application"
-    Publisher: "Publisher"
+    ShortTitle: "N/A"
+    LongTitle: "Demo
+NARUTO Powerful Shippuden"
+    Publisher: "NAMCO BANDAI Games Inc."
   German:
     ShortTitle: "Application"
     LongTitle: "Application"
-    Publisher: "Publisher"
+    Publisher: "Publ...r"
   Italian:
     ShortTitle: "Application"
     LongTitle: "Application"
