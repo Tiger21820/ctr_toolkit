@@ -2,9 +2,12 @@
 *.sh
 *.bat
 make_banner.exe
-test.icn
-test.bnr
-
+*.icn
+*.bnr
+*.bsf
+*.cwav
+*.cbmd
+*.ctpk
 
 ############
 ## Windows
