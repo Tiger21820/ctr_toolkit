@@ -1,9 +1,13 @@
 CTR-SDK Development Tool - make_banner - Generates ICN/BNR files
-Version: 1.1
-
-2013 (c) 3DSGuy
+Version: 1.2 2013 (C) 3DSGuy
 
 /******** Change Log ********/
+
+Version 1.2:
+* Refactored main.c (added main.h),
+* input syntax has changed
+* can perform multiple commands at once(makeicn, makebnr and readicn)
+* added experimental verbose mode(might remove later, as not really necissary)
 
 Version 1.1:
 * Added '--readicn' mode which allows checking of generated ICN files
@@ -13,24 +17,37 @@ Version 1.0:
 * Initial Public release
 * Supports generating valid ICN / BNR files for the 3DS
 
-/******** Downloads ********/
+/******** Usage: ********/
 
-Version 1.0:
+Usage: make_banner [options] commands
 
-Windows (32-Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_1.0_windows.7z
+COMMANDS                Parameters            Explanation
+ -h, --help                                   Print this help.
+     --makeicn          File-out              Generate an ICN file.
+     --makebnr          File-out              Generate a BNR file.
+     --readicn          File-in               Parse an ICN file.
+OPTIONS                 Possible Values       Explanation
+ -v, --verbose                                Enable verbose output.
+ -b, --bsf              File-in               BSF file.
+ -s, --small_icon       File-in               'Small Icon' file.
+ -l, --large_icon       File-in               'Large Icon' file.
+ -g, --cbmd             File-in               CBMD file.
+ -a, --cwav             File-in               (B)CWAV file.
+ 
+Examples:
 
-Linux (32 Bit): https://dl.dropbox.com/u/60710927/CTR/make_banner/make_banner_1.0_linux.7z
+Generating a BNR:
+makebanner --cbmd project.cbmd --cwav project.cwav --makebnr project.bnr
+or
+makebanner -g project.cbmd -a project.cwav --makebnr project.bnr
 
-/******** Usage Examples ********/
+Generating an ICN:
+makebanner --bsf project.bsf --small_icon 24x24.ctpk --large_icon 48x48.ctpk --makeicn project.icn
+or
+makebanner -b project.bsf -s 24x24.ctpk -l 48x48.ctpk --makeicn project.icn
 
-"make_banner --bnr -g Project/graphics.cbmd -a Project/audio.bcwav -o Project/banner.bnr"
-
-"make_banner --icn -b Project/project.bsf -s project/24x24.ctpk -l project/48x48.ctpk -o project/icon.icn"
-
-/******** Testing 'make_banner' ********/
-
-In directory 'Project' are stock standard input files. They can be used to generate working output.
-If you don't have a means to test the output on a 3DS, output '.icn' can be checked with make_banner, by using the following usage "make_banner --readicn test.icn" 
+Checking/Reading an ICN:
+makebanner --readicn project.icn
 
 /******** Creating Input Files ********/
 
@@ -38,3 +55,10 @@ Check the Banner Specification File (.BSF) comments for customising the BSF file
 in a text editor.
 
 Generating .ctpk/.cwav/.cbmd TODO
+
+/******** Credits ********/
+A Big thanks to Xcution for CiTRus(which allowed for the documentation of the SMDH file 
+which I used to write this program), CollosalPokemon, yellows8, jl12, s3my0n, and elisherer 
+without whom this program would not exist.
+
+
