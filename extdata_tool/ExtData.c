@@ -23,17 +23,13 @@ void print_extdata_header(HEADER_CONTEXT header)
 {
 	printf("\n[+] ExtData Image Header\n");
 	printf("Magic:                      DIFF\n");
-	printf("HMAC:                       ");
-	u8_hex_print_be(header.HMAC, 0x10);
-	putchar('\n');
+	printf("AES MAC:                    "); u8_hex_print_be(header.AES_MAC, 0x10); putchar('\n');
 	printf("Primary Partition Offset:   0x%x\n",header.DIFF.primary_partition_offset);
 	printf("Secondary Partition Offset: 0x%x\n",header.DIFF.secondary_partition_offset);
 	printf("Partition Table Length:     0x%x\n",header.DIFF.partition_table_length);
 	printf("Active Table(FB) Offset:    0x%x\n",header.DIFF.active_table_offset);
 	printf("File Base Size:             0x%x\n",header.DIFF.file_base_size);
-	printf("Active Table Hash:          ");
-	u8_hex_print_be(header.DIFF.active_table_hash, 0x20);
-	printf("\n");
+	printf("Active Table Hash:          "); u8_hex_print_be(header.DIFF.active_table_hash, 0x20); printf("\n");
 }
 
 void print_partition_info(PARTITION_STRUCT partition)
@@ -142,7 +138,6 @@ PARTITION_STRUCT get_extdata_partition_header(u64 offset, u32 active_table_offse
 		return partition;
 	}
 	partition.DIFI_offset = offset;
-	partition.active_table_offset = active_table_offset;
 	
 	//Storing IVFC blob
 	fseek(extdataimg,(partition.DIFI_offset + partition.DIFI.ivfc_blob_offset),SEEK_SET);

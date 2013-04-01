@@ -30,6 +30,15 @@ void u8_hex_print_le(u8 *array, int len)
 		printf("%02x",array[len - i - 1]);
 }
 
+void print_product_code(u8 *product_code)
+{
+	for(int i = 0; i < 0x10; i++){
+		if(product_code[i] == '\0')
+			return;
+		putchar(product_code[i]);
+	}
+}
+
 int process_dir(u8 *dir, int len)
 {
 	//TODO

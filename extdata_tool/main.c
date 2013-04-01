@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	}
 	//Reading ExtData HMAC
 	fseek(extdataimg, 0x00, SEEK_SET);
-	fread(header.HMAC,0x10,1,extdataimg);
+	fread(header.AES_MAC,0x10,1,extdataimg);
 	
 	PARTITION_STRUCT partition_primary;
 	PARTITION_STRUCT partition_secondary;
@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
 		partition_primary = get_extdata_partition_header(header.DIFF.primary_partition_offset, header.DIFF.active_table_offset, extdataimg);
 		if(partition_primary.valid != 0){
 			printf("[!] Primary DIFI Partition Corrupt\n");
+			return DIFI_CORRUPT;
 		}
 	}
 	else{
@@ -118,6 +119,7 @@ int main(int argc, char *argv[])
 		partition_secondary = get_extdata_partition_header(header.DIFF.secondary_partition_offset, header.DIFF.active_table_offset, extdataimg);
 		if(partition_secondary.valid != 0){
 			printf("[!] Secondary DIFI Partition Corrupt\n");
+			return DIFI_CORRUPT;
 		}
 	}
 	else{

@@ -110,7 +110,7 @@ DPFS_STRUCT;
 
 typedef struct
 {
-	u8 HMAC[0x10];
+	u8 AES_MAC[0x10];
 	DIFF_STRUCT DIFF;
 } __attribute__((__packed__)) 
 HEADER_CONTEXT;

@@ -18,5 +18,6 @@ along with make_banner.  If not, see <http://www.gnu.org/licenses/>.
 **/
 void u8_hex_print_be(u8 *array, int len);
 void u8_hex_print_le(u8 *array, int len);
+void print_product_code(u8 *product_code);
 int process_dir(u8 *dir, int len);
 int makedir(const char* dir);

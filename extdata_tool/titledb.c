@@ -67,8 +67,8 @@ int process_title_database(FILE *tdb, u64 offset)
 			PRODUCT_CODE_STRUCT pdc;
 			memset(&pdc,0x0,sizeof(pdc));
 			fread(&pdc,sizeof(pdc),1,tdb);
-			printf("  Product Code:       %s\n",pdc.product_code);
-			printf("  Title Size:         "); u8_hex_print_le(pdc.title_size, 8); printf("\n");
+			printf("  Product Code:       "); print_product_code(pdc.product_code); putchar('\n');
+			printf("  Title Size:         "); u8_hex_print_le(pdc.title_size, 8); putchar('\n');
 			printf("  Title Type:         %x\n",pdc.title_type);
 			printf("  Title Version:      v%d\n",pdc.title_version);
 			printf("  TMD Content ID:     %08x\n",pdc.tmd_file_id);
