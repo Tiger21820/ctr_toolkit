@@ -29,7 +29,7 @@ void print_extdata_header(HEADER_CONTEXT header)
 	printf("Partition Table Length:     0x%x\n",header.DIFF.partition_table_length);
 	printf("Active Table(FB) Offset:    0x%x\n",header.DIFF.active_table_offset);
 	printf("File Base Size:             0x%x\n",header.DIFF.file_base_size);
-	printf("Active Table Hash:          "); u8_hex_print_be(header.DIFF.active_table_hash, 0x20); printf("\n");
+	printf("Active Table Hash:          "); u8_hex_print_be(header.DIFF.active_table_hash, 0x20); putchar('\n');
 }
 
 void print_partition_info(PARTITION_STRUCT partition)
@@ -203,8 +203,24 @@ int get_extdata_duo_blob(u64 offset, u64 size, int suffix, FILE *extdataimg)
 	
 	fseek(extdataimg,offset,SEEK_SET);
 	fread(MAGIC_tmp,4,1,extdataimg);
-	if(strcmp(MAGIC_tmp,"TEMP") == 0)
-		strcpy(MAGIC_tmp,"TEMPTDB");
+	
+	//Correcting Output names for files embedded in .db extdata images
+	if(strcmp(MAGIC_tmp,"TEMP") == 0){
+		memset(&MAGIC_tmp,0x0,0x10);
+		fread(MAGIC_tmp,4,1,extdataimg);
+		if(strcmp(MAGIC_tmp,"IDB") == 0)
+			strcpy(MAGIC_tmp,"TEMPIDB");
+		else if(strcmp(MAGIC_tmp,"TDB") == 0)
+			strcpy(MAGIC_tmp,"TEMPTDB");
+	}
+	else if(strcmp(MAGIC_tmp,"NAND") == 0){
+		memset(&MAGIC_tmp,0x0,0x10);
+		fread(MAGIC_tmp,4,1,extdataimg);
+		if(strcmp(MAGIC_tmp,"IDB") == 0)
+			strcpy(MAGIC_tmp,"NANDIDB");
+		else if(strcmp(MAGIC_tmp,"TDB") == 0)
+			strcpy(MAGIC_tmp,"NANDTDB");
+	}
 		
 	//Preparing Output Data file
 	u8 out_name[20];

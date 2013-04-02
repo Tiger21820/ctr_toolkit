@@ -29,3 +29,5 @@ along with make_banner.  If not, see <http://www.gnu.org/licenses/>.
 
 #define FALSE 0
 #define TRUE 1
+
+#define INVALID -1

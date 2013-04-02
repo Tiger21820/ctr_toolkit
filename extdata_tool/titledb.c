@@ -28,10 +28,10 @@ int process_title_database(FILE *tdb, u64 offset)
 	fseek(tdb,offset,SEEK_SET);
 	fread(&tdb_header,sizeof(TEMPTDB_STRUCT),1,tdb);
 	
-	// Checking TEMPTDB Magic
-	if(tdb_header.magic_0 != TEMPTDB_MAGIC_0 || tdb_header.magic_1 != TEMPTDB_MAGIC_1){
-		printf("[!] Title Database File is Corrupt\n");
-		return TEMPTDB_CORRUPT;
+	u8 database_type = tdb_magic_check(tdb_header.magic_0, tdb_header.magic_1);
+	
+	if(database_type == INVALID){
+		return TDB_CORRUPT;
 	}
 	
 	// Checking embedded BDRI Magic
@@ -40,47 +40,133 @@ int process_title_database(FILE *tdb, u64 offset)
 		return BDRI_CORRUPT;
 	}
 	
-	// Reading title table header
+	// Reading title entry table header
 	fseek(tdb,(offset + tdb_header.bdri.title_table_offset),SEEK_SET);
 	TITLE_TABLE_HEADER title_table_header;
 	memset(&title_table_header,0x0,sizeof(title_table_header));
 	fread(&title_table_header,sizeof(title_table_header),1,tdb);
+	
+	// Printing Information
+	printf("[+] Title Data Base Header\n");
+	printf("  Database Type:             ");
+	switch(database_type){
+		case(NANDTDB):
+			printf("NAND Title Database\n");
+			break;
+		case(NANDIDB):
+			printf("NAND Import Database\n");
+			break;
+		case(TEMPTDB):
+			printf("SD Card Title Database\n");
+			break;
+		case(TEMPIDB):
+			printf("NAND DLP Child Temporary Database\n");
+			break;
+	}	
+	
+	printf("  Database Size:             %x\n",(tdb_header.bdri.filesize_X*tdb_header.bdri.filesize_Y));
+	printf("  Title Entry Table Offset:  %x\n",tdb_header.bdri.title_table_offset);
+	printf("  Title Info Table Offset:   %x\n",(tdb_header.bdri.title_info_table_offset_X*tdb_header.bdri.title_info_table_offset_Y) + tdb_header.bdri.title_table_offset);
+	
+	printf("[+] Title Entry Table Header\n");
+	//printf("  Title Info Table size:     %x\n",(((title_table_header.title_info_endX*title_table_header.title_info_endY) + tdb_header.bdri.title_table_offset) - (tdb_header.bdri.title_info_table_offset_X*tdb_header.bdri.title_info_table_offset_Y))); 
+	printf("  MAX Number of Titles:      %d\n",title_table_header.entry_count);
+	
 	printf("[+] Title List\n");
+	TID_ENTRY_STRUCT title_entry;
+	TITLE_INFO_STRUCT title_info;
 	for(int i = 0; i < title_table_header.entry_count; i++){
-		fseek(tdb,(offset + tdb_header.bdri.title_table_offset + sizeof(title_table_header) + (sizeof(TID_STRUCT)*i)),SEEK_SET);
-		TID_STRUCT tid;
-		memset(&tid,0x0,sizeof(tid));
-		fread(&tid,sizeof(tid),1,tdb);
-		if(tid.active_entry == TRUE){
+		memset(&title_entry,0x0,sizeof(title_entry));
+		memset(&title_info,0x0,sizeof(title_info));
+		fseek(tdb,(offset + tdb_header.bdri.title_table_offset + sizeof(title_table_header) + (sizeof(TID_ENTRY_STRUCT)*i)),SEEK_SET);
+		fread(&title_entry,sizeof(title_entry),1,tdb);
+		if(title_entry.active_entry == TRUE){
+			//Getting Title Info
+			fseek(tdb,(offset + tdb_header.bdri.title_table_offset + (title_entry.title_info_offset_X*title_entry.title_info_offset_Y) + title_entry.title_info_offset_Y),SEEK_SET);
+			fread(&title_info,sizeof(title_info),1,tdb);
+			
 			printf("[%d]:\n",i);
-			printf("  Title ID:           "); u8_hex_print_le(tid.title_id, 8); printf("\n");
-			//printf("  Active Entry :      %08x\n",tid.active_entry);
-			printf("  Title Index :       %d\n",tid.unknown_1);
-			printf("  Unknown_2 :         %08x\n",tid.unknown_2);
-			printf("  PDC Address X :     %08x\n",tid.pdc_table_X);
-			printf("  PDC Address Y :     %08x\n",tid.pdc_table_Y);
-			printf("  Unknown_5 :         %08x\n",tid.unknown_5);
-			printf("  Unknown_6 :         %08x\n",tid.unknown_6);
-			printf("  Unknown_7 :         %08x\n",tid.unknown_7);
-			printf("  Unknown_8 :         %08x\n",tid.unknown_8);
-			fseek(tdb,(offset + tdb_header.bdri.title_table_offset + (tid.pdc_table_X*tid.pdc_table_Y) + tid.pdc_table_Y),SEEK_SET);
-			PRODUCT_CODE_STRUCT pdc;
-			memset(&pdc,0x0,sizeof(pdc));
-			fread(&pdc,sizeof(pdc),1,tdb);
-			printf("  Product Code:       "); print_product_code(pdc.product_code); putchar('\n');
-			printf("  Title Size:         "); u8_hex_print_le(pdc.title_size, 8); putchar('\n');
-			printf("  Title Type:         %x\n",pdc.title_type);
-			printf("  Title Version:      v%d\n",pdc.title_version);
-			printf("  TMD Content ID:     %08x\n",pdc.tmd_file_id);
-			printf("  CMD Content ID:     %08x\n",pdc.cmd_file_id);
-			printf("  ExtdataID low:      %08x\n",pdc.extdata_id);
-			printf("  Manual:             %s\n",pdc.electronic_manual? "YES" : "NO");
-			printf("  Save Data:          %s\n",pdc.save_data? "YES" : "NO");
-			printf("  Unknown_0:          %x\n",pdc.unknown_3);
-			printf("  Unknown_1:          %x\n",pdc.unknown_4);
-			printf("  Unknown_2:          %x\n",pdc.constant);
-			printf("  Unknown:            %08x\n",pdc.unknown_6);
+			
+			//Start of Title Entry
+			printf(" > Title Entry Details\n");
+			printf("  Title ID:                  "); u8_hex_print_le(title_entry.title_id, 8); printf("\n");
+			//printf("  Active Entry :             %08x\n",title_entry.active_entry);
+			printf("  Title Index :              %d\n",title_entry.unknown_1);
+			printf("  Unknown_2 :                %08x\n",title_entry.unknown_2);
+			printf("  Title Info Offset X :      %08x\n",title_entry.title_info_offset_X);
+			printf("  Title Info Offset Y :      %08x\n",title_entry.title_info_offset_Y);
+			printf("  Unknown_5 :                %08x\n",title_entry.unknown_5);
+			if(database_type == NANDTDB)
+				printf("  Unique ID :                %08x\n",title_entry.unknown_6);
+			else
+				printf("  Unknown_6 :                %08x\n",title_entry.unknown_6);
+			printf("  Unknown_7 :                %08x\n",title_entry.unknown_7);
+			printf("  Unknown_8 :                %08x\n",title_entry.unknown_8);
+			
+			//Start of Title Info
+			printf(" > Title Info Details\n");
+			printf("  Product Code:              "); print_product_code(title_info.product_code); putchar('\n');
+			printf("  Title Size:                "); u8_hex_print_le(title_info.title_size, 8); putchar('\n');
+			printf("  Title Type:                %x\n",title_info.title_type);
+			printf("  Title Version:             v%d\n",title_info.title_version);
+			printf("  Flags_0:                   "); u8_hex_print_be(title_info.flags_0,0x4);putchar('\n');
+			printf("   > Manual:                 %s\n",title_info.flags_0[0]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_0[1]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_0[2]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_0[3]? "YES" : "NO");
+			printf("  TMD Content ID:            %08x\n",title_info.tmd_file_id);
+			printf("  CMD Content ID:            %08x\n",title_info.cmd_file_id);
+			printf("  Flags_1:                   "); u8_hex_print_be(title_info.flags_1,0x4);putchar('\n');
+			printf("   > Save Data:              %s\n",title_info.flags_1[0]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_1[1]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_1[2]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_1[3]? "YES" : "NO");
+			printf("  ExtdataID low:             %08x\n",title_info.extdata_id);
+			printf("  Flags_2:                   "); u8_hex_print_be(title_info.flags_2,0x4);putchar('\n');
+			printf("   > UNK:                    %s\n",title_info.flags_2[0]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_2[1]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_2[2]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_2[3]? "YES" : "NO");
+			printf("  Flags_3:                   "); u8_hex_print_be(title_info.flags_3,0x4);putchar('\n');
+			printf("   > DSiWare Related:        %s\n",title_info.flags_3[0]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_3[1]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_3[2]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_3[3]? "YES" : "NO");
+			printf("  Flags_4:                   "); u8_hex_print_be(title_info.flags_4,0x4);putchar('\n');
+			printf("   > DSiWare Related:        %s\n",title_info.flags_4[0]? "YES" : "NO");
+			printf("   > DSiWare Related:        %s\n",title_info.flags_4[1]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_4[2]? "YES" : "NO");
+			printf("   > UNK:                    %s\n",title_info.flags_4[3]? "YES" : "NO");
+			printf("  Unknown:                   %08x\n",title_info.unknown_6);
 		}
 	}
+	printf("[*] Done\n");
 	return 0;
+}
+
+u8 tdb_magic_check(u32 magic_0, u32 magic_1)
+{
+	// Checking Type of Database
+	if(magic_0 == NANDTDB_MAGIC_0 && magic_1 == NANDTDB_MAGIC_1){
+		return NANDTDB;
+	}
+	
+	else if(magic_0 == NANDIDB_MAGIC_0 && magic_1 == NANDIDB_MAGIC_1){
+		return NANDIDB;
+	}
+	
+	else if(magic_0 == TEMPTDB_MAGIC_0 && magic_1 == TEMPTDB_MAGIC_1){
+		printf("[+] Is a SD Card Title Database\n");
+		return TEMPTDB;
+	}
+	
+	else if(magic_0 == TEMPIDB_MAGIC_0 && magic_1 == TEMPIDB_MAGIC_1){
+		printf("[+] Is a tmp_i/tmp_t Database\n");
+		return TEMPIDB;
+	}
+	
+	else{
+		printf("[!] Is not a Title Database or is Corrupt\n");
+		return INVALID;
+	}
 }

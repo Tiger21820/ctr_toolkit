@@ -16,9 +16,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with make_banner.  If not, see <http://www.gnu.org/licenses/>.
 **/
+#define NANDTDB_MAGIC_0 0x444e414e
+#define NANDTDB_MAGIC_1 0x424454
+#define NANDIDB_MAGIC_0 0x444E414E
+#define NANDIDB_MAGIC_1 0x424449
 #define TEMPTDB_MAGIC_0 0x504D4554
 #define TEMPTDB_MAGIC_1 0x424454
-#define TEMPTDB_CORRUPT 10
+#define TEMPIDB_MAGIC_0 0x504D4554
+#define TEMPIDB_MAGIC_1 0x424449
+
+#define NANDTDB 20
+#define NANDIDB 21
+#define TEMPTDB 22
+#define TEMPIDB 23
+
+#define TDB_CORRUPT 10
 #define BDRI_MAGIC_0 0x49524442
 #define BDRI_MAGIC_1 0x30000
 #define BDRI_CORRUPT 11
@@ -28,27 +40,21 @@ typedef struct
 	u8 title_size[8];
 	u32 title_type;
 	u32 title_version;
-	
-	u32 electronic_manual;
+	u8 flags_0[4];
 	u32 tmd_file_id;
 	u32 cmd_file_id;
-	u32 save_data;	
-	
+	u8 flags_1[4];
 	u32 extdata_id;
-	u32 unknown_3;
-	u32 unknown_4;
-	u32 constant;
-	
+	u8 flags_2[4];
+	u8 flags_3[4];
+	u8 flags_4[4];
 	u8 product_code[0x10];
-	
 	u8 reserved_0[0x10];
-	
 	u32 unknown_6;
 	u8 reserved_1[0xC];
-	
 	u8 reserved_2[0x20];
 } __attribute__((__packed__)) 
-PRODUCT_CODE_STRUCT;
+TITLE_INFO_STRUCT;
 
 typedef struct
 {
@@ -56,20 +62,20 @@ typedef struct
 	u8 title_id[8];
 	u32 unknown_1;
 	u32 unknown_2;
-	u32 pdc_table_X;
-	u32 pdc_table_Y;
+	u32 title_info_offset_X;
+	u32 title_info_offset_Y;
 	u32 unknown_5;
 	u32 unknown_6;
 	u32 unknown_7;
 	u32 unknown_8;
 } __attribute__((__packed__)) 
-TID_STRUCT;
+TID_ENTRY_STRUCT;
 
 typedef struct
 {
 	u8 reserved[0x48];
-	u16 pdc_table_maxX;
-	u16 pdc_table_maxY;
+	u16 title_info_endX;
+	u16 title_info_endY;
 	u8 unknown_2[4];
 	u8 reserved_1[0x30];
 	u8 unknown_3[4];
@@ -88,9 +94,17 @@ typedef struct
 	u32 magic_0;
 	u32 magic_1;
 	u8 reserved_0[0x8];
-	u8 unknown[0x48];
+	u32 filesize_X;
+	u8 reserved_1[4];
+	u32 filesize_Y;
+	u8 reserved_2[4];
+	u8 unknown_fixed[0x20];
+	u8 unknown_0[0x18];
 	u32 title_table_offset;
-	u8 reserved[0x124];
+	u8 unknown_1[0x20];
+	u32 title_info_table_offset_X;
+	u8 reserved_3[4];
+	u32 title_info_table_offset_Y;
 } __attribute__((__packed__)) 
 BDRI_STRUCT;
 
@@ -104,3 +118,4 @@ typedef struct
 TEMPTDB_STRUCT;
 
 int process_title_database(FILE *tdb, u64 offset);
+u8 tdb_magic_check(u32 magic_0, u32 magic_1);

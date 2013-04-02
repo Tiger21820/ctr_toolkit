@@ -23,7 +23,7 @@ along with make_banner.  If not, see <http://www.gnu.org/licenses/>.
 
 //Version
 #define MAJOR 0
-#define MINOR 8
+#define MINOR 9
 
 void app_title(void);
 void help(char *app_name);
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 void app_title(void)
 {
 	printf("CTR ExtData Tool\n");
-	printf("Version %d.%d (C) 3DSGuy 2013\n\n",MAJOR,MINOR);
+	printf("Version %d.%d (C) 3DSGuy 2013\n",MAJOR,MINOR);
 }
 
 void help(char *app_name)
