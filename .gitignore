@@ -8,6 +8,8 @@ make_banner.exe
 *.cwav
 *.cbmd
 *.ctpk
+*.db
+*.bin
 
 ############
 ## Windows
