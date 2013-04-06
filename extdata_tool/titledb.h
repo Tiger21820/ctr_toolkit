@@ -25,12 +25,14 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 #define TEMPIDB_MAGIC_0 0x504D4554
 #define TEMPIDB_MAGIC_1 0x424449
 
+#define PREHEADER_SIZE 0x80
+
 #define NANDTDB 20
 #define NANDIDB 21
 #define TEMPTDB 22
 #define TEMPIDB 23
 
-#define TDB_CORRUPT 10
+#define DB_CORRUPT 10
 #define BDRI_MAGIC_0 0x49524442
 #define BDRI_MAGIC_1 0x30000
 #define BDRI_CORRUPT 11
@@ -45,47 +47,41 @@ typedef struct
 	u32 cmd_file_id;
 	u8 flags_1[4];
 	u32 extdata_id;
-	u8 flags_2[4];
-	u8 flags_3[4];
-	u8 flags_4[4];
+	u8 reserved[4];
+	u8 flags_2[8];
 	u8 product_code[0x10];
 	u8 reserved_0[0x10];
 	u32 unknown_6;
 	u8 reserved_1[0xC];
-	u8 reserved_2[0x20];
+	u8 reserved_2[0x20];//perhaps padding between info entries
 } __attribute__((__packed__)) 
-TITLE_INFO_STRUCT;
+TITLE_INFO_ENTRY_STRUCT;
 
 typedef struct
 {
+	u32 unknown_0;
 	u32 active_entry;
 	u8 title_id[8];
-	u32 unknown_1;
+	u32 index;
 	u32 unknown_2;
 	u32 title_info_offset_X;
 	u32 title_info_offset_Y;
 	u32 unknown_5;
 	u32 unknown_6;
 	u32 unknown_7;
-	u32 unknown_8;
 } __attribute__((__packed__)) 
-TID_ENTRY_STRUCT;
+TITLE_INDEX_ENTRY_STRUCT;
 
 typedef struct
 {
-	u8 reserved[0x48];
-	u16 title_info_endX;
-	u16 title_info_endY;
-	u8 unknown_2[4];
-	u8 reserved_1[0x30];
-	u8 unknown_3[4];
-	u8 unknown_4[4];
+	u32 unknown_0;
+	u32 unknown_1;
 	u8 reserved_2[0x24];
-	u8 unknown_5[4];
-	u8 reserved_3[0x50];
 	u32 entry_count;
-	u8 unknown_6[4];
-	u8 reserved_4[0x24];
+	u8 reserved_3[0x50];
+	u32 max_entry_count;
+	u32 unknown_2;
+	u8 reserved_4[0x20];
 } __attribute__((__packed__)) 
 TITLE_TABLE_HEADER;
 

@@ -23,7 +23,7 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 
 //Version
 #define MAJOR 0
-#define MINOR 9
+#define MINOR 98
 
 void app_title(void);
 void help(char *app_name);

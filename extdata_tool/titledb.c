@@ -31,7 +31,8 @@ int process_title_database(FILE *tdb, u64 offset)
 	u8 database_type = tdb_magic_check(tdb_header.magic_0, tdb_header.magic_1);
 	
 	if(database_type == INVALID){
-		return TDB_CORRUPT;
+		printf("[!] This Database is corrupt\n");
+		return DB_CORRUPT;
 	}
 	
 	// Checking embedded BDRI Magic
@@ -41,7 +42,7 @@ int process_title_database(FILE *tdb, u64 offset)
 	}
 	
 	// Reading title entry table header
-	fseek(tdb,(offset + tdb_header.bdri.title_table_offset),SEEK_SET);
+	fseek(tdb,(offset + PREHEADER_SIZE + tdb_header.bdri.title_table_offset),SEEK_SET);
 	TITLE_TABLE_HEADER title_table_header;
 	memset(&title_table_header,0x0,sizeof(title_table_header));
 	fread(&title_table_header,sizeof(title_table_header),1,tdb);
@@ -65,24 +66,27 @@ int process_title_database(FILE *tdb, u64 offset)
 	}	
 	
 	printf("  Database Size:             %x\n",(tdb_header.bdri.filesize_X*tdb_header.bdri.filesize_Y));
-	printf("  Title Entry Table Offset:  %x\n",tdb_header.bdri.title_table_offset);
-	printf("  Title Info Table Offset:   %x\n",(tdb_header.bdri.title_info_table_offset_X*tdb_header.bdri.title_info_table_offset_Y) + tdb_header.bdri.title_table_offset);
+	printf("  Title Entry Table Offset:  %x\n",(PREHEADER_SIZE + tdb_header.bdri.title_table_offset));
+	printf("  Title Info Table Offset:   %x\n",(PREHEADER_SIZE + tdb_header.bdri.title_table_offset + tdb_header.bdri.title_info_table_offset_X*tdb_header.bdri.title_info_table_offset_Y));
 	
 	printf("[+] Title Entry Table Header\n");
-	//printf("  Title Info Table size:     %x\n",(((title_table_header.title_info_endX*title_table_header.title_info_endY) + tdb_header.bdri.title_table_offset) - (tdb_header.bdri.title_info_table_offset_X*tdb_header.bdri.title_info_table_offset_Y))); 
-	printf("  MAX Number of Titles:      %d\n",title_table_header.entry_count);
+	printf("  Unknown_0:                 %d\n",title_table_header.unknown_0);
+	printf("  Unknown_1:                 %d\n",title_table_header.unknown_1);
+	printf("  Number of Titles:          %d\n",title_table_header.entry_count);//Can give weird values, perhaps checking all slots is better?
+	printf("  MAX Number of Titles:      %d\n",title_table_header.max_entry_count);
+	printf("  Unknown_2:                 %x\n",title_table_header.unknown_2);
 	
 	printf("[+] Title List\n");
-	TID_ENTRY_STRUCT title_entry;
-	TITLE_INFO_STRUCT title_info;
+	TITLE_INDEX_ENTRY_STRUCT title_entry;
+	TITLE_INFO_ENTRY_STRUCT title_info;
 	for(int i = 0; i < title_table_header.entry_count; i++){
 		memset(&title_entry,0x0,sizeof(title_entry));
 		memset(&title_info,0x0,sizeof(title_info));
-		fseek(tdb,(offset + tdb_header.bdri.title_table_offset + sizeof(title_table_header) + (sizeof(TID_ENTRY_STRUCT)*i)),SEEK_SET);
+		fseek(tdb,(offset + PREHEADER_SIZE + tdb_header.bdri.title_table_offset + sizeof(title_table_header) + (sizeof(TITLE_INDEX_ENTRY_STRUCT)*i)),SEEK_SET);
 		fread(&title_entry,sizeof(title_entry),1,tdb);
 		if(title_entry.active_entry == TRUE){
 			//Getting Title Info
-			fseek(tdb,(offset + tdb_header.bdri.title_table_offset + (title_entry.title_info_offset_X*title_entry.title_info_offset_Y) + title_entry.title_info_offset_Y),SEEK_SET);
+			fseek(tdb,(offset + PREHEADER_SIZE + tdb_header.bdri.title_table_offset + (title_entry.title_info_offset_X*title_entry.title_info_offset_Y)),SEEK_SET);
 			fread(&title_info,sizeof(title_info),1,tdb);
 			
 			printf("[%d]:\n",i);
@@ -90,18 +94,16 @@ int process_title_database(FILE *tdb, u64 offset)
 			//Start of Title Entry
 			printf(" > Title Entry Details\n");
 			printf("  Title ID:                  "); u8_hex_print_le(title_entry.title_id, 8); printf("\n");
-			//printf("  Active Entry :             %08x\n",title_entry.active_entry);
-			printf("  Title Index :              %d\n",title_entry.unknown_1);
-			printf("  Unknown_2 :                %08x\n",title_entry.unknown_2);
-			printf("  Title Info Offset X :      %08x\n",title_entry.title_info_offset_X);
-			printf("  Title Info Offset Y :      %08x\n",title_entry.title_info_offset_Y);
-			printf("  Unknown_5 :                %08x\n",title_entry.unknown_5);
-			if(database_type == NANDTDB)
-				printf("  Unique ID :                %08x\n",title_entry.unknown_6);
-			else
-				printf("  Unknown_6 :                %08x\n",title_entry.unknown_6);
-			printf("  Unknown_7 :                %08x\n",title_entry.unknown_7);
-			printf("  Unknown_8 :                %08x\n",title_entry.unknown_8);
+			//printf("  Active Entry:              %08x\n",title_entry.active_entry);
+			printf("  Unknown_1:                 %08x\n",title_entry.unknown_0);
+			printf("  Title Index:               %d\n",title_entry.index);
+			printf("  Unknown_2:                 %08x\n",title_entry.unknown_2);
+			printf("  Title Info Offset X:       %08x\n",title_entry.title_info_offset_X);
+			printf("  Title Info Offset Y:       %08x\n",title_entry.title_info_offset_Y);
+			printf("  Unknown_5:                 %08x\n",title_entry.unknown_5);			
+			printf("  Unknown_6:                 %08x\n",title_entry.unknown_6);
+			printf("  Unknown_7:                 %08x\n",title_entry.unknown_7);
+			
 			
 			//Start of Title Info
 			printf(" > Title Info Details\n");
@@ -111,32 +113,26 @@ int process_title_database(FILE *tdb, u64 offset)
 			printf("  Title Version:             v%d\n",title_info.title_version);
 			printf("  Flags_0:                   "); u8_hex_print_be(title_info.flags_0,0x4);putchar('\n');
 			printf("   > Manual:                 %s\n",title_info.flags_0[0]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_0[1]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_0[2]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_0[3]? "YES" : "NO");
+			//printf("   > UNK_1:                    %s\n",title_info.flags_0[1]? "YES" : "NO");
+			//printf("   > UNK_2:                    %s\n",title_info.flags_0[2]? "YES" : "NO");
+			//printf("   > UNK_3:                    %s\n",title_info.flags_0[3]? "YES" : "NO");
 			printf("  TMD Content ID:            %08x\n",title_info.tmd_file_id);
 			printf("  CMD Content ID:            %08x\n",title_info.cmd_file_id);
 			printf("  Flags_1:                   "); u8_hex_print_be(title_info.flags_1,0x4);putchar('\n');
-			printf("   > Save Data:              %s\n",title_info.flags_1[0]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_1[1]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_1[2]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_1[3]? "YES" : "NO");
+			printf("   > SD Save Data:           %s\n",title_info.flags_1[0]? "YES" : "NO");
+			//printf("   > UNK_1:                    %s\n",title_info.flags_1[1]? "YES" : "NO");
+			//printf("   > UNK_2:                    %s\n",title_info.flags_1[2]? "YES" : "NO");
+			//printf("   > UNK_3:                    %s\n",title_info.flags_1[3]? "YES" : "NO");
 			printf("  ExtdataID low:             %08x\n",title_info.extdata_id);
-			printf("  Flags_2:                   "); u8_hex_print_be(title_info.flags_2,0x4);putchar('\n');
-			printf("   > UNK:                    %s\n",title_info.flags_2[0]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_2[1]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_2[2]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_2[3]? "YES" : "NO");
-			printf("  Flags_3:                   "); u8_hex_print_be(title_info.flags_3,0x4);putchar('\n');
-			printf("   > DSiWare Related:        %s\n",title_info.flags_3[0]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_3[1]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_3[2]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_3[3]? "YES" : "NO");
-			printf("  Flags_4:                   "); u8_hex_print_be(title_info.flags_4,0x4);putchar('\n');
-			printf("   > DSiWare Related:        %s\n",title_info.flags_4[0]? "YES" : "NO");
-			printf("   > DSiWare Related:        %s\n",title_info.flags_4[1]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_4[2]? "YES" : "NO");
-			printf("   > UNK:                    %s\n",title_info.flags_4[3]? "YES" : "NO");
+			printf("  Flags_2:                   "); u8_hex_print_be(title_info.flags_2,0x8);putchar('\n');
+			printf("   > DSiWare Related:        %s\n",title_info.flags_2[0]? "YES" : "NO");//DSiWare Related, Export Flag?
+			//printf("   > UNK_1:                    %s\n",title_info.flags_3[1]? "YES" : "NO");
+			//printf("   > UNK_2:                    %s\n",title_info.flags_3[2]? "YES" : "NO");
+			//printf("   > UNK_3:                    %s\n",title_info.flags_3[3]? "YES" : "NO");
+			printf("   > 'Application' TID:      %s\n",title_info.flags_2[4]? "YES" : "NO");//Only present on titles with an Application TID
+			printf("   > DSiWare Related:        %s\n",title_info.flags_2[5]? "YES" : "NO");//DSiWare Related, Export Flag?
+			//printf("   > UNK_6:                    %s\n",title_info.flags_4[2]? "YES" : "NO");
+			//printf("   > UNK_7:                    %s\n",title_info.flags_4[3]? "YES" : "NO");
 			printf("  Unknown:                   %08x\n",title_info.unknown_6);
 		}
 	}
@@ -147,26 +143,14 @@ int process_title_database(FILE *tdb, u64 offset)
 u8 tdb_magic_check(u32 magic_0, u32 magic_1)
 {
 	// Checking Type of Database
-	if(magic_0 == NANDTDB_MAGIC_0 && magic_1 == NANDTDB_MAGIC_1){
+	if(magic_0 == NANDTDB_MAGIC_0 && magic_1 == NANDTDB_MAGIC_1)
 		return NANDTDB;
-	}
-	
-	else if(magic_0 == NANDIDB_MAGIC_0 && magic_1 == NANDIDB_MAGIC_1){
-		return NANDIDB;
-	}
-	
-	else if(magic_0 == TEMPTDB_MAGIC_0 && magic_1 == TEMPTDB_MAGIC_1){
-		printf("[+] Is a SD Card Title Database\n");
+	else if(magic_0 == NANDIDB_MAGIC_0 && magic_1 == NANDIDB_MAGIC_1)
+		return NANDIDB;	
+	else if(magic_0 == TEMPTDB_MAGIC_0 && magic_1 == TEMPTDB_MAGIC_1)
 		return TEMPTDB;
-	}
-	
-	else if(magic_0 == TEMPIDB_MAGIC_0 && magic_1 == TEMPIDB_MAGIC_1){
-		printf("[+] Is a tmp_i/tmp_t Database\n");
+	else if(magic_0 == TEMPIDB_MAGIC_0 && magic_1 == TEMPIDB_MAGIC_1)
 		return TEMPIDB;
-	}
-	
-	else{
-		printf("[!] Is not a Title Database or is Corrupt\n");
+	else
 		return INVALID;
-	}
 }
