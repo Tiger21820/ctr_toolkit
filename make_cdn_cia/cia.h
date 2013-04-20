@@ -26,6 +26,25 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 
 typedef struct
 {
+	u8 modulus[0x100];
+	u8 exponent[0x4];
+} __attribute__((__packed__))
+RSA_2048_PUB_KEY;
+
+typedef struct
+{
+	u8 padding_0[0x3c];
+	u8 issuer[0x40];
+	u8 tag_0[4];
+	u8 name[0x40];
+	u8 tag_1[0x4];
+	RSA_2048_PUB_KEY pubk;
+	u8 padding_1[0x34];
+} __attribute__((__packed__))
+CERT_2048KEY_DATA_STRUCT;
+
+typedef struct
+{
 	u8 padding_0[0x3c];
 	u8 issuer[0x40];
 	u8 version;
@@ -51,8 +70,7 @@ typedef struct
 	u8 system_version[8];
 	u8 title_id[8];
 	u8 title_type[4];
-	u8 group_id[2];
-	u8 reserved[0x3e];
+	u8 reserved[0x40];
 	u8 access_rights[4];
 	u8 title_version[2];
 	u8 content_count[2];
@@ -67,7 +85,7 @@ typedef struct
 {
 	u8 padding_0[0x3c];
 	u8 issuer[0x40];
-	u8 ECDH[0x3c];
+	u8 ecdsa[0x3c];
 	u8 unknown[3];
 } __attribute__((__packed__))
 CETK_SIG_STRUCT;

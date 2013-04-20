@@ -195,7 +195,7 @@ u32 get_cert_size(u32 offset, FILE *file)
 	u32 sig_size = get_sig_size(offset,file);
 	if(sig_size == ERR_UNRECOGNISED_SIG)
 		return ERR_UNRECOGNISED_SIG;
-	return (0x4+sig_size+0x1FC);
+	return (0x4+sig_size+sizeof(CERT_2048KEY_DATA_STRUCT));
 }
 
 u32 get_total_cert_size(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context)
