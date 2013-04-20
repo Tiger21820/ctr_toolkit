@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 
 void app_title(void)
 {
-	printf("CTR SMDH/Banner Tool\n");
+	printf("CTR_Toolkit - SMDH/Banner Tool\n");
 	printf("Version: %d.%d (C) 2013 3DSGuy\n",MAJOR,MINOR);
 }
 
