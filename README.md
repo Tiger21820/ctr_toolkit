@@ -1,7 +1,7 @@
-ctr_toolchain
+CTR_Toolkit
 =============
 
-Legal, open source, 3DS tool chain.
+Legal, open source, 3DS toolkit.
 
 1/ extdata_tool
 
