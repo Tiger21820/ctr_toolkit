@@ -15,7 +15,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
-**/s
+**/
 //Sig Types
 #define RSA_2048_SHA256 0x04000100
 #define RSA_4096_SHA256 0x03000100
