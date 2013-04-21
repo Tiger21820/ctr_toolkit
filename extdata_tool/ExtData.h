@@ -113,7 +113,7 @@ typedef struct
 	u8 AES_MAC[0x10];
 	DIFF_STRUCT DIFF;
 } __attribute__((__packed__)) 
-HEADER_CONTEXT;
+EXTDATA_HEADER_CONTEXT;
 
 typedef struct
 {
@@ -127,7 +127,7 @@ typedef struct
 } __attribute__((__packed__)) 
 PARTITION_STRUCT;
 
-void print_extdata_header(HEADER_CONTEXT header);
+void print_extdata_header(EXTDATA_HEADER_CONTEXT header);
 void print_partition_info(PARTITION_STRUCT partition);
 void print_DIFI(PARTITION_STRUCT partition);
 void print_IVFC(PARTITION_STRUCT partition);

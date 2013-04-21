@@ -19,7 +19,7 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 #include "lib.h"
 #include "ExtData.h"
 
-void print_extdata_header(HEADER_CONTEXT header)
+void print_extdata_header(EXTDATA_HEADER_CONTEXT header)
 {
 	printf("\n[+] ExtData Image Header\n");
 	printf("Magic:                      DIFF\n");

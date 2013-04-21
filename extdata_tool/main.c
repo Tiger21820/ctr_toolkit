@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 		return IO_FAIL;
 	}
 	
-	HEADER_CONTEXT header;
+	EXTDATA_HEADER_CONTEXT header;
 	
 	memset(&header,0,sizeof(header));
 	
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 
 void app_title(void)
 {
-	printf("CTR ExtData Tool\n");
+	printf("CTR_Toolkit - ExtData Tool\n");
 	printf("Version %d.%d (C) 3DSGuy 2013\n",MAJOR,MINOR);
 }
 
