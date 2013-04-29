@@ -19,61 +19,61 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 #include "lib.h"
 #include "cia.h"
 
-int generate_cia(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *output)
+int generate_cia(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context, FILE *output)
 {
-	write_cia_header(tmd_context,cetk_context,output);
-	write_cert_chain(tmd_context,cetk_context,output);
-	write_cetk(tmd_context,cetk_context,output);
-	write_tmd(tmd_context,cetk_context,output);
-	write_content(tmd_context,cetk_context,output);
+	write_cia_header(tmd_context,tik_context,output);
+	write_cert_chain(tmd_context,tik_context,output);
+	write_tik(tmd_context,tik_context,output);
+	write_tmd(tmd_context,tik_context,output);
+	write_content(tmd_context,tik_context,output);
 	fclose(output);
-	fclose(cetk_context.cetk);
+	fclose(tik_context.tik);
 	fclose(tmd_context.tmd);
 	free(tmd_context.content_struct);
 	free(tmd_context.content);
 	return 0;
 }
 
-CETK_CONTEXT process_cetk(FILE *cetk)
+TIK_CONTEXT process_tik(FILE *tik)
 {
-	CETK_CONTEXT cetk_context;
-	memset(&cetk_context,0x0,sizeof(cetk_context));
+	TIK_CONTEXT tik_context;
+	memset(&tik_context,0x0,sizeof(tik_context));
 	
-	cetk_context.cetk = cetk;
+	tik_context.tik = tik;
 	
-	u32 sig_size = get_sig_size(0x0,cetk);
+	u32 sig_size = get_sig_size(0x0,tik);
 	if(sig_size == ERR_UNRECOGNISED_SIG){
 		printf("[!] The CETK signature could not be recognised\n");
-		cetk_context.result = ERR_UNRECOGNISED_SIG;
-		return cetk_context;
+		tik_context.result = ERR_UNRECOGNISED_SIG;
+		return tik_context;
 	}
 	
-	CETK_STRUCT cetk_struct = get_cetk_struct(sig_size,cetk);
-	cetk_context.cetk_size = get_cetk_size(sig_size);
-	cetk_context.title_version = u8_to_u16(cetk_struct.title_version,BIG_ENDIAN);
+	TIK_STRUCT tik_struct = get_tik_struct(sig_size,tik);
+	tik_context.tik_size = get_tik_size(sig_size);
+	tik_context.title_version = u8_to_u16(tik_struct.title_version,BIG_ENDIAN);
 	
-	if(cetk_context.cetk_size == ERR_UNRECOGNISED_SIG){
-		cetk_context.result = ERR_UNRECOGNISED_SIG;
-		return cetk_context;
+	if(tik_context.tik_size == ERR_UNRECOGNISED_SIG){
+		tik_context.result = ERR_UNRECOGNISED_SIG;
+		return tik_context;
 	}
 	
-	cetk_context.cert_offset[0] = cetk_context.cetk_size;
-	cetk_context.cert_size[0] = get_cert_size(cetk_context.cetk_size,cetk);
-	cetk_context.cert_offset[1] = cetk_context.cetk_size + cetk_context.cert_size[0];
-	cetk_context.cert_size[1] = get_cert_size(cetk_context.cert_offset[1],cetk);
+	tik_context.cert_offset[0] = tik_context.tik_size;
+	tik_context.cert_size[0] = get_cert_size(tik_context.tik_size,tik);
+	tik_context.cert_offset[1] = tik_context.tik_size + tik_context.cert_size[0];
+	tik_context.cert_size[1] = get_cert_size(tik_context.cert_offset[1],tik);
 	
-	if(cetk_context.cert_size[0] == ERR_UNRECOGNISED_SIG || cetk_context.cert_size[1] == ERR_UNRECOGNISED_SIG){
+	if(tik_context.cert_size[0] == ERR_UNRECOGNISED_SIG || tik_context.cert_size[1] == ERR_UNRECOGNISED_SIG){
 		printf("[!] One or both of the signatures in the CETK 'Cert Chain' are unrecognised\n");
-		cetk_context.result = ERR_UNRECOGNISED_SIG;
-		return cetk_context;
+		tik_context.result = ERR_UNRECOGNISED_SIG;
+		return tik_context;
 	}
-	endian_strcpy(cetk_context.title_id,cetk_struct.title_id,8,BIG_ENDIAN);
+	endian_strcpy(tik_context.title_id,tik_struct.title_id,8,BIG_ENDIAN);
 	
-	//printf("[+] CETK Title ID: "); u8_hex_print_be(cetk_context.title_id,0x8); printf("\n");
-	//printf("[+] CETK Size:     0x%x\n",cetk_context.cetk_size);
-	//printf("[+] CERT Size:     0x%x\n",cetk_context.cert_size);
+	//printf("[+] CETK Title ID: "); u8_hex_print_be(tik_context.title_id,0x8); printf("\n");
+	//printf("[+] CETK Size:     0x%x\n",tik_context.tik_size);
+	//printf("[+] CERT Size:     0x%x\n",tik_context.cert_size);
 	
-	return cetk_context;
+	return tik_context;
 }
 
 TMD_CONTEXT process_tmd(FILE *tmd)
@@ -142,15 +142,15 @@ TMD_CONTEXT process_tmd(FILE *tmd)
 	return tmd_context;
 }
 
-CIA_HEADER set_cia_header(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context)
+CIA_HEADER set_cia_header(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context)
 {
 	CIA_HEADER cia_header;
 	memset(&cia_header,0x0,sizeof(cia_header));
 	cia_header.header_size = sizeof(CIA_HEADER);
 	cia_header.type = 0x0;
 	cia_header.version = 0x0;
-	cia_header.cert_size = get_total_cert_size(tmd_context,cetk_context);
-	cia_header.cetk_size = cetk_context.cetk_size;
+	cia_header.cert_size = get_total_cert_size(tmd_context,tik_context);
+	cia_header.tik_size = tik_context.tik_size;
 	cia_header.tmd_size = tmd_context.tmd_size;
 	cia_header.meta_size = 0x0;
 	cia_header.content_size = get_content_size(tmd_context);
@@ -158,9 +158,9 @@ CIA_HEADER set_cia_header(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context)
 	return cia_header;
 }
 
-u32 get_cetk_size(u32 sig_size)
+u32 get_tik_size(u32 sig_size)
 {
-	return (0x4 + sig_size + sizeof(CETK_STRUCT));
+	return (0x4 + sig_size + sizeof(TIK_STRUCT));
 }
 
 u32 get_tmd_size(u32 sig_size, u16 content_count)
@@ -174,18 +174,14 @@ u32 get_sig_size(u32 offset, FILE *file)
 	u32 sig_type;
 	fread(&sig_type,0x4,1,file);
 	switch(sig_type){
-		case(RSA_4096_SHA1):
-			//printf("[+] Sig Type:      RSA_4096_SHA1\n");
-			return 0x200;
-		case(RSA_2048_SHA1):
-			//printf("[+] Sig Type:      RSA_2048_SHA1\n");
-			return 0x100;
-		case(RSA_4096_SHA256):
-			//printf("[+] Sig Type:      RSA_4096_SHA256\n");
-			return 0x200;
-		case(RSA_2048_SHA256):
-			//printf("[+] Sig Type:      RSA_2048_SHA256\n");
-			return 0x100;
+		/**
+		case(RSA_4096_SHA1): return 0x200;
+		case(RSA_2048_SHA1): return 0x100;
+		case(Elliptic_Curve_0): return 0x3C;
+		**/
+		case(RSA_4096_SHA256): return 0x200;
+		case(RSA_2048_SHA256): return 0x100;
+		//case(Elliptic_Curve_1): return 0x3C;
 	}
 	return ERR_UNRECOGNISED_SIG;
 }
@@ -198,9 +194,9 @@ u32 get_cert_size(u32 offset, FILE *file)
 	return (0x4+sig_size+sizeof(CERT_2048KEY_DATA_STRUCT));
 }
 
-u32 get_total_cert_size(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context)
+u32 get_total_cert_size(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context)
 {
-	return (cetk_context.cert_size[1] + cetk_context.cert_size[0] + tmd_context.cert_size[0]);
+	return (tik_context.cert_size[1] + tik_context.cert_size[0] + tmd_context.cert_size[0]);
 }
 
 u64 get_content_size(TMD_CONTEXT tmd_context)
@@ -221,15 +217,15 @@ u32 get_content_id(TMD_CONTENT_CHUNK_STRUCT content_struct)
 	return u8_to_u32(content_struct.content_id,BIG_ENDIAN);
 }
 
-int write_cia_header(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *output)
+int write_cia_header(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context, FILE *output)
 {
-	CIA_HEADER cia_header = set_cia_header(tmd_context,cetk_context);
+	CIA_HEADER cia_header = set_cia_header(tmd_context,tik_context);
 	fseek(output,0x0,SEEK_SET);
 	fwrite(&cia_header,sizeof(cia_header),1,output);
 	return 0;
 }
 
-int write_cert_chain(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *output)
+int write_cert_chain(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context, FILE *output)
 {
 	u8 cert[0x1000];
 	
@@ -240,16 +236,16 @@ int write_cert_chain(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *o
 	//The order of Certs in CIA goes, Root Cert, Cetk Cert, TMD Cert. In CDN format each file has it's own cert followed by a Root cert
 	
 	//Taking Root Cert from Cetk Cert chain(can be taken from TMD Cert Chain too)
-	memset(cert,0x0,cetk_context.cert_size[1]);
-	fseek(cetk_context.cetk,cetk_context.cert_offset[1],SEEK_SET);
-	fread(&cert,cetk_context.cert_size[1],1,cetk_context.cetk);
-	fwrite(&cert,cetk_context.cert_size[1],1,output);
+	memset(cert,0x0,tik_context.cert_size[1]);
+	fseek(tik_context.tik,tik_context.cert_offset[1],SEEK_SET);
+	fread(&cert,tik_context.cert_size[1],1,tik_context.tik);
+	fwrite(&cert,tik_context.cert_size[1],1,output);
 	
 	//Writing Cetk Cert
-	memset(cert,0x0,cetk_context.cert_size[0]);
-	fseek(cetk_context.cetk,cetk_context.cert_offset[0],SEEK_SET);
-	fread(&cert,cetk_context.cert_size[0],1,cetk_context.cetk);
-	fwrite(&cert,cetk_context.cert_size[0],1,output);
+	memset(cert,0x0,tik_context.cert_size[0]);
+	fseek(tik_context.tik,tik_context.cert_offset[0],SEEK_SET);
+	fread(&cert,tik_context.cert_size[0],1,tik_context.tik);
+	fwrite(&cert,tik_context.cert_size[0],1,output);
 	
 	//Writing TMD Cert
 	memset(cert,0x0,tmd_context.cert_size[0]);
@@ -260,28 +256,28 @@ int write_cert_chain(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *o
 	return 0;
 }
 
-int write_cetk(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *output)
+int write_tik(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context, FILE *output)
 {
-	u8 cetk[cetk_context.cetk_size];
+	u8 tik[tik_context.tik_size];
 	
-	u32 cert_size = get_total_cert_size(tmd_context,cetk_context);
+	u32 cert_size = get_total_cert_size(tmd_context,tik_context);
 	
 	//Seeking Offset in output
-	u32 offset = align_value(get_total_cert_size(tmd_context,cetk_context),0x40) + align_value(sizeof(CIA_HEADER),0x40);
+	u32 offset = align_value(get_total_cert_size(tmd_context,tik_context),0x40) + align_value(sizeof(CIA_HEADER),0x40);
 	fseek(output,offset,SEEK_SET);
 	
-	memset(cetk,0x0,cetk_context.cetk_size);
-	fseek(cetk_context.cetk,0x0,SEEK_SET);
-	fread(&cetk,cetk_context.cetk_size,1,cetk_context.cetk);
-	fwrite(&cetk,cetk_context.cetk_size,1,output);
+	memset(tik,0x0,tik_context.tik_size);
+	fseek(tik_context.tik,0x0,SEEK_SET);
+	fread(&tik,tik_context.tik_size,1,tik_context.tik);
+	fwrite(&tik,tik_context.tik_size,1,output);
 	
 	return 0;
 }
 
-int write_tmd(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *output)
+int write_tmd(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context, FILE *output)
 {
 	//Seeking Offset in output
-	u32 offset = align_value(cetk_context.cetk_size,0x40) + align_value(get_total_cert_size(tmd_context,cetk_context),0x40) + align_value(sizeof(CIA_HEADER),0x40);
+	u32 offset = align_value(tik_context.tik_size,0x40) + align_value(get_total_cert_size(tmd_context,tik_context),0x40) + align_value(sizeof(CIA_HEADER),0x40);
 	fseek(output,offset,SEEK_SET);
 
 	u8 tmd[tmd_context.tmd_size];
@@ -293,10 +289,10 @@ int write_tmd(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *output)
 	return 0;
 }
 
-int write_content(TMD_CONTEXT tmd_context, CETK_CONTEXT cetk_context, FILE *output)
+int write_content(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context, FILE *output)
 {
 	//Seeking Offset in output
-	u32 offset = align_value(tmd_context.tmd_size,0x40) + align_value(cetk_context.cetk_size,0x40) + align_value(get_total_cert_size(tmd_context,cetk_context),0x40) + align_value(sizeof(CIA_HEADER),0x40);
+	u32 offset = align_value(tmd_context.tmd_size,0x40) + align_value(tik_context.tik_size,0x40) + align_value(get_total_cert_size(tmd_context,tik_context),0x40) + align_value(sizeof(CIA_HEADER),0x40);
 	fseek(output,offset,SEEK_SET);
 	
 	for(int i = 0; i < tmd_context.content_count; i++){
@@ -322,12 +318,12 @@ int write_content_data(FILE *content, u64 content_size, FILE *output)
 	
 }
 
-CETK_STRUCT get_cetk_struct(u32 sig_size, FILE *cetk)
+TIK_STRUCT get_tik_struct(u32 sig_size, FILE *tik)
 {
-	CETK_STRUCT cetk_struct;
-	fseek(cetk,(0x4+sig_size),SEEK_SET);
-	fread(&cetk_struct,sizeof(cetk_struct),1,cetk);
-	return cetk_struct;
+	TIK_STRUCT tik_struct;
+	fseek(tik,(0x4+sig_size),SEEK_SET);
+	fread(&tik_struct,sizeof(tik_struct),1,tik);
+	return tik_struct;
 }
 
 TMD_STRUCT get_tmd_struct(u32 sig_size, FILE *tmd)

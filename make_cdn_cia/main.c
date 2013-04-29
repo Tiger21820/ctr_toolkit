@@ -52,13 +52,13 @@ int main(int argc, char *argv[])
 	//Changing to CDN Content Directory
 	chdir(argv[1]);
 	
-	//Processing CETK
-	FILE *cetk = fopen("cetk","rb");
-	if(cetk == NULL){
-		printf("[!] Could not open 'cetk'\n");
+	//Processing TIK
+	FILE *tik = fopen("cetk","rb");
+	if(tik == NULL){
+		printf("[!] Could not open 'tik'\n");
 		return IO_FAIL;
 	}
-	CETK_CONTEXT cetk_context = process_cetk(cetk);
+	TIK_CONTEXT tik_context = process_tik(tik);
 	
 	//Processing TMD
 	FILE *tmd = fopen("tmd","rb");
@@ -69,24 +69,24 @@ int main(int argc, char *argv[])
 	TMD_CONTEXT tmd_context = process_tmd(tmd);
 	
 	//Error Checking
-	if(cetk_context.result != 0 || tmd_context.result != 0){
+	if(tik_context.result != 0 || tmd_context.result != 0){
 		printf("[!] Input files could not be processed successfully\n");
 		free(tmd_context.content_struct);
 		free(tmd_context.content);
-		fclose(cetk);
+		fclose(tik);
 		fclose(tmd);
 		return FILE_PROCESS_FAIL;
 	}
 	//TID comparison check
-	if(check_tid(cetk_context.title_id,tmd_context.title_id) != TRUE){
+	if(check_tid(tik_context.title_id,tmd_context.title_id) != TRUE){
 		printf("[!] Caution, Ticket and TMD Title IDs do not match\n");
-		printf("[!] CETK Title ID:  "); u8_hex_print_be(cetk_context.title_id,0x8); printf("\n");
+		printf("[!] CETK Title ID:  "); u8_hex_print_be(tik_context.title_id,0x8); printf("\n");
 		printf("[!] TMD Title ID:   "); u8_hex_print_be(tmd_context.title_id,0x8); printf("\n");
 	}
 	//Title Version comparison
-	if(cetk_context.title_version != tmd_context.title_version){
+	if(tik_context.title_version != tmd_context.title_version){
 		printf("[!] Caution, Ticket and TMD Title Versions do not match\n");
-		printf("[!] CETK Title Ver: %d\n",cetk_context.title_version);
+		printf("[!] CETK Title Ver: %d\n",tik_context.title_version);
 		printf("[!] TMD Title Ver:  %d\n",tmd_context.title_version);
 	}
 	
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 		return IO_FAIL;
 	}
 	
-	int result = generate_cia(tmd_context,cetk_context,output);
+	int result = generate_cia(tmd_context,tik_context,output);
 	if(result != 0){
 		printf("[!] Failed to Generate %s\n",argv[2]);
 		remove(argv[2]);
