@@ -35,17 +35,17 @@ int icn_main(ICN_CONTEXT icn)
     fwrite(&magic, 4, 1, icn.output);
 
     //Write Title Data
-	if(icn.verbose_bool == TRUE)
+	if(icn.verbose_bool)
 		printf("[+] Writing Title Strings\n\n");
     icn_title_proccess(icn);
 
     //Write ICN Settings
-	if(icn.verbose_bool == TRUE)
+	if(icn.verbose_bool)
 		printf("\n[+] Writing Application Settings/Flags\n\n");
     icn_settings_proccess(icn);
 
     //Write Icon Data
-	if(icn.verbose_bool == TRUE)
+	if(icn.verbose_bool)
 		printf("\n[+] Writing Icons\n");
     icn_icon_proccess(icn);
 
@@ -62,11 +62,12 @@ int icn_title_proccess(ICN_CONTEXT icn)
 	strcpy(language_string[3], "German");
 	strcpy(language_string[4], "Italian");
 	strcpy(language_string[5], "Spanish");
-	strcpy(language_string[6], "Chinese");
+	strcpy(language_string[6], "SimpChinese");
 	strcpy(language_string[7], "Korean");
 	strcpy(language_string[8], "Dutch");
 	strcpy(language_string[9], "Portuguese");
 	strcpy(language_string[10], "Russian");
+	strcpy(language_string[11], "TradChinese");
 	
 	/** Temporary Arrays **/	
 	u8 *short_title = malloc(sizeof(u8)*SIZE_SHORT_TITLE);
@@ -105,7 +106,7 @@ int icn_title_proccess(ICN_CONTEXT icn)
 					printf("[!] Warning, No 'Publisher' string for %s\n",language_string[i]);
 				}
 				//Writing Language Strings to Data Struct
-				if(icn.verbose_bool == TRUE)
+				if(icn.verbose_bool)
 					printf("[+]%s : [%s] [%s] [%s]\n",language_string[i],short_title,long_title,publisher);
 				icn.titles.title_array[i] = string_ICN_conv(short_title,long_title,publisher);
 				
@@ -137,7 +138,8 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 	
 	/** Processing Bitmask Flags **/
 	//Creating Identity Arrays
-	u8 bit_flag_key[MAX_BIT_NUM][20] = {"", "AutoBoot", "Flag3DEffect", "RequireAcceptEULA", "AutoSaveOnExit", "UseExtendedBanner", "UseAgeRestrictions", "UseSaveData"};
+	u8 bit_flag_key_0[MAX_BIT_NUM][20] = {"Visable", "AutoBoot", "Flag3DEffect", "RequireAcceptEULA", "AutoSaveOnExit", "UseExtendedBanner", "UseAgeRestrictions", "UseSaveData"};
+	u8 bit_flag_key_1[MAX_BIT_NUM][20] = {"IconDatabase", "", "", "", "", "", "", ""};
 	u8 bit_flag_value[MAX_BIT_NUM] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 	
 	//Creating bit flag 0 counter
@@ -147,32 +149,25 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 	//Setting Static Flags
 	icn.settings.byte_flag[0] = 0x01;
 	icn.settings.byte_flag[1] = 0x01; // Some Dev Apps have this byte flag set to 0x00
-	icn.settings.byte_flag[2] = 0x00;
-	icn.settings.byte_flag[3] = 0x00;
-	icn.settings.byte_flag[4] = 0x00;
-	icn.settings.byte_flag[5] = 0x01;
-	icn.settings.byte_flag[6] = 0x00;
-	icn.settings.byte_flag[7] = 0x00;
 	
 	//Region Age Rating flag
 	int use_age_ratings = FALSE;
 	
 	fseek(icn.bsf, 0x00, SEEK_SET);
-	//Current Research allows only 'icn.settings.byte_flag[0]' to be customised...
 	if(key_search("Options", icn.bsf) == FOUND){
 		if(key_search("Flags", icn.bsf) == FOUND){
 			long int pos0 = ftell(icn.bsf);
-			for(int i = 1; i < MAX_BIT_NUM; i++){
+			for(int i = 0; i < MAX_BIT_NUM; i++){
 				fseek(icn.bsf, pos0, SEEK_SET);
-				if (get_boolean(bit_flag_key[i], icn.bsf) == TRUE){
-					if(icn.verbose_bool == TRUE)
-						printf("[+] %s was True\n",bit_flag_key[i]);
+				if (get_boolean(bit_flag_key_0[i], icn.bsf) == TRUE){
+					if(icn.verbose_bool)
+						printf("[+] %s was True\n",bit_flag_key_0[i]);
 					icn.settings.byte_flag[0] += bit_flag_value[i];
 					if(i == 6)
 						use_age_ratings = TRUE;
 				}
-				else if(icn.verbose_bool == TRUE)
-						printf("[+] %s was False\n",bit_flag_key[i]);
+				else if(icn.verbose_bool)
+						printf("[+] %s was False\n",bit_flag_key_0[i]);
 					
 			}
 		}
@@ -186,6 +181,33 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 		return FLAG_FAIL;
 	}
 	
+	fseek(icn.bsf, 0x00, SEEK_SET);
+	if(key_search("Options", icn.bsf) == FOUND){
+		if(key_search("Flags", icn.bsf) == FOUND){
+			long int pos0 = ftell(icn.bsf);
+			for(int i = 0; i < 1; i++){
+				fseek(icn.bsf, pos0, SEEK_SET);
+				if (get_boolean(bit_flag_key_1[i], icn.bsf) == TRUE){
+					if(icn.verbose_bool)
+						printf("[+] %s was True\n",bit_flag_key_1[i]);
+					icn.settings.byte_flag[0] += bit_flag_value[i];
+					if(i == 6)
+						use_age_ratings = TRUE;
+				}
+				else if(icn.verbose_bool)
+						printf("[+] %s was False\n",bit_flag_key_1[i]);
+					
+			}
+		}
+		else{
+			key_find_fail("Flags");
+			return FLAG_FAIL;
+		}
+	}
+	else{
+		key_find_fail("Options");
+		return FLAG_FAIL;
+	}
 	
 	/** Processing Age Ratings **/
 		/*** Seting Up Region Key Array and Input Array***/
@@ -227,7 +249,7 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 					if(rating_type == VALID_RATING){
 						region_rating += 0x80;
 						icn.settings.ratings.rating[rating_index] = region_rating;
-						if(icn.verbose_bool == TRUE)
+						if(icn.verbose_bool)
 							printf("[+] Age Restriction for %s was set to %d\n",region_rating_key[i], (region_rating - 0x80));
 					}
 					else{
@@ -250,16 +272,44 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 	}
 		
 	/** Processing Region Lock **/
+	u8 region_lock_list[MAX_REGION_LOCK_NUM][15] = {"Japan", "America", "Europe", "Australia", "China", "Korea", "Taiwan"};
+	u8 region_bit_flag_value[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+	fseek(icn.bsf, 0x00, SEEK_SET);
+	if(key_search("Options", icn.bsf) == FOUND){
+		if(key_search("RegionLockout", icn.bsf) == FOUND){
+			long int pos0 = ftell(icn.bsf);
+			for(int i = 0; i < MAX_REGION_LOCK_NUM; i++){
+				fseek(icn.bsf, pos0, SEEK_SET);
+				if (get_boolean(region_lock_list[i], icn.bsf) == TRUE){
+					if(icn.verbose_bool)
+						printf("[+] Region Lock was set to include %s\n",region_lock_list[i]);
+					icn.settings.region_lock[0] += region_bit_flag_value[i];
+				}
+				else if(icn.verbose_bool)
+						printf("[+] Region Lock was set to exclude %s\n",region_lock_list[i]);
+					
+			}
+		}
+		else{
+			key_find_fail("RegionLockout");
+			return REGION_LOCKOUT_FAIL;
+		}
+	}
+	else{
+		key_find_fail("Options");
+		return REGION_LOCKOUT_FAIL;
+	}
+	/**
 	// This may need to be more complex
-	u8 region_lock_list_1[MAX_REGION_LOCK_NUM][15] = {"Region_Free", "Japan", "America", "Europe", "Korea", "Taiwan", "China"};
-	u8 region_lock_list_2[MAX_REGION_LOCK_NUM][5] = {"All", "JPN", "USA", "EUR", "KOR", "TWN", "CHN"};
-	u8 region_lock_hex[MAX_REGION_LOCK_NUM][8] = {"7FFFFFFF", "00000001", "00000002", "0000000C", "00000020", "00000040", "0000050"};
+	u8 region_lock_list_1[MAX_REGION_LOCK_NUM][15] = {"Region_Free", "Japan", "America", "Europe", "Australia", "China", "Korea", "Taiwan"};
+	u8 region_lock_list_2[MAX_REGION_LOCK_NUM][5] = {"All", "JPN", "USA", "EUR", "AUS", "CHN", "KOR", "TWN"};
+	u8 region_lock_hex[MAX_REGION_LOCK_NUM][8] = {"7FFFFFFF", "00000001", "00000002", "00000004", "00000008", "0000010", "00000020", "00000040"};
 	fseek(icn.bsf, 0x00, SEEK_SET);
 	if(key_search("Options", icn.bsf) == FOUND){
 		if (get_value(buff,15,"RegionLockout", icn.bsf) == FOUND){
 			for(int i = 0; i < MAX_REGION_LOCK_NUM; i++){
 				if(strcmp(buff, region_lock_list_1[i]) == 0 || strcmp(buff, region_lock_list_2[i]) == 0){
-					if(icn.verbose_bool == TRUE)
+					if(icn.verbose_bool)
 						printf("[+] Region Lock was set to %s\n",region_lock_list_1[i]);
 					char_to_int_array(icn.settings.region_lock, region_lock_hex[i], 4, LITTLE_ENDIAN, HEX);
 					break;
@@ -279,13 +329,42 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 		key_find_fail("Options");
 		return REGION_LOCKOUT_FAIL;
 	}
+	**/
+	
+	/** Processing EULA Version **/
+	fseek(icn.bsf, 0x00, SEEK_SET);
+	if(key_search("Options", icn.bsf) == FOUND){
+		long int pos0 = ftell(icn.bsf);
+		if (get_value(buff,2,"EulaMajorVersion",icn.bsf) == FOUND){
+			char_to_int_array(&icn.settings.eula_major, buff, 1, BIG_ENDIAN, HEX);
+		}
+		else{
+			printf("[!] EulaMajorVersion was not specified\n");
+			return EULA_VER_FAIL;
+		}
+		fseek(icn.bsf, pos0, SEEK_SET);
+		if (get_value(buff,2,"EulaMinorVersion",icn.bsf) == FOUND){
+			char_to_int_array(&icn.settings.eula_minor, buff, 1, BIG_ENDIAN, HEX);
+		}
+		else{
+			printf("[!] EulaMinorVersion was not specified\n");
+			return EULA_VER_FAIL;
+		}
+		if(icn.verbose_bool){
+			printf("[+] EULA Version was set to %02x.%02x\n",icn.settings.eula_major,icn.settings.eula_minor);
+		}
+	}
+	else{
+		key_find_fail("Options");
+		return REGION_LOCKOUT_FAIL;
+	}
 	
 	/** Processing Default Banner Frame **/
 	u8 default_frame[MAX_READ_LEN];
 	fseek(icn.bsf, 0x00, SEEK_SET);
 	if(key_search("Options", icn.bsf) == FOUND){
 		if (get_value(default_frame,100,"OptimalBNRFrame",icn.bsf) == FOUND){
-			if(icn.verbose_bool == TRUE)
+			if(icn.verbose_bool)
 				printf("[+] OptimalBNRFrame was set to %f\n",default_frame);
 			union
 			{
@@ -425,7 +504,7 @@ int icn_read(FILE *icn, u8 verbose)
 	if(verbose == TRUE)
 		title_num = 16;
 	else
-		title_num = 11;
+		title_num = 12;
 	
 	u8 language_string[16][20];
 	strcpy(language_string[0], "Japanese");
@@ -434,16 +513,16 @@ int icn_read(FILE *icn, u8 verbose)
 	strcpy(language_string[3], "German");
 	strcpy(language_string[4], "Italian");
 	strcpy(language_string[5], "Spanish");
-	strcpy(language_string[6], "Chinese");
+	strcpy(language_string[6], "Simplified Chinese");
 	strcpy(language_string[7], "Korean");
 	strcpy(language_string[8], "Dutch");
 	strcpy(language_string[9], "Portuguese");
 	strcpy(language_string[10], "Russian");
-	strcpy(language_string[11], "Unknown Language 0");
-	strcpy(language_string[12], "Unknown Language 1");
-	strcpy(language_string[13], "Unknown Language 2");
-	strcpy(language_string[14], "Unknown Language 3");
-	strcpy(language_string[15], "Unknown Language 4");
+	strcpy(language_string[11], "Traditional Chinese");
+	strcpy(language_string[12], "Unknown Language 0");
+	strcpy(language_string[13], "Unknown Language 1");
+	strcpy(language_string[14], "Unknown Language 2");
+	strcpy(language_string[15], "Unknown Language 3");
 	
 	printf("\n[+] Application Title Strings:\n\n");
 	for(int i = 0; i < title_num; i++){
@@ -463,21 +542,21 @@ int icn_read(FILE *icn, u8 verbose)
 	u8 region_rating_key[MAX_RATING_NUM][30] = {"Japan:			", "USA:			", "German:			", "Europe:			", "Portugual:			", "England:			", "Australia:			"};
 	u8 ratingindex[MAX_RATING_NUM] = {0,1,3,4,6,7,8};
 	fseek(icn, 0x2028, SEEK_SET);
-	u8 byte_flags[8];
-	fread(&byte_flags, 0x8,1,icn);
-	for(int i = 0; i < 8; i++)
+	u8 byte_flags[2];
+	fread(&byte_flags, 0x2,1,icn);
+	for(int i = 0; i < 2; i++)
 		printf(" %02x",byte_flags[i]);
 	printf("\n");
 	u8 flag_bool[8];
 	//byte[0] flags
 	resolve_flag(byte_flags[0],flag_bool);
-	printf(" > Visable:			%s\n",flag_bool[0]? "YES" : "NO");
-	printf(" > AutoBoot Application:	%s\n",flag_bool[1]? "YES" : "NO");
-	printf(" > Uses 3D Effect:		%s\n",flag_bool[2]? "YES" : "NO");
-	printf(" > Requires Accepting EULA:	%s\n",flag_bool[3]? "YES" : "NO");
-	printf(" > Autosave On Exit:		%s\n",flag_bool[4]? "YES" : "NO");
-	printf(" > Use an Extended Banner:	%s\n",flag_bool[5]? "YES" : "NO");
-	printf(" > Use Age Restrictions:	%s\n",flag_bool[6]? "YES" : "NO");
+	printf(" > Visable:                     %s\n",flag_bool[0]? "YES" : "NO");
+	printf(" > AutoBoot Application:        %s\n",flag_bool[1]? "YES" : "NO");
+	printf(" > Uses 3D Effect:              %s\n",flag_bool[2]? "YES" : "NO");
+	printf(" > Requires Accepting EULA:     %s\n",flag_bool[3]? "YES" : "NO");
+	printf(" > Autosave On Exit:            %s\n",flag_bool[4]? "YES" : "NO");
+	printf(" > Use an Extended Banner:      %s\n",flag_bool[5]? "YES" : "NO");
+	printf(" > Use Age Restrictions:        %s\n",flag_bool[6]? "YES" : "NO");
 	/** Age Restrictions, If used **/
 	if(flag_bool[6] == TRUE){
 		for(int i = 0; i < MAX_RATING_NUM; i++){
@@ -487,18 +566,13 @@ int icn_read(FILE *icn, u8 verbose)
 				printf("   > %s%d\n",region_rating_key[i], (tmp - 0x80));
 		}
 	}
-	printf(" > Use Save Data:		%s\n",flag_bool[7]? "YES" : "NO");
+	printf(" > Use Save Data:               %s\n",flag_bool[7]? "YES" : "NO");
 	
 	//byte[1] flags
 	resolve_flag(byte_flags[1],flag_bool);
-	// This appears to be a general indicator, rather than an enforcer
-	// Official Apps which "don't" return to the home menu, don't have 
-	// this set.
-	printf(" > Allow Return to Home Menu:	%s\n",flag_bool[0]? "YES" : "NO");
+	printf(" > Use Icon Database:           %s\n",flag_bool[0]? "YES" : "NO");
 
 	/** Region Lock **/
-	// Well my current theory which is 'Region locking is just bitmask magic'. Will have to confirm.
-	// From SDK 1.2.0 'China' encompases Taiwan 3DSs and 'Europe' encompases the now non-existant Australian 3DSs
 	fseek(icn,0x2018,SEEK_SET);
 	u8 region_lock[4];
 	fread(&region_lock,sizeof(region_lock),1,icn);
@@ -508,26 +582,26 @@ int icn_read(FILE *icn, u8 verbose)
 	printf("\n");
 	u8 region_lock_bool[8];
 	resolve_flag(region_lock[0],region_lock_bool);
-	printf(" > Japan:			%s\n",region_lock_bool[0]? "YES" : "NO");
-	printf(" > North America:		%s\n",region_lock_bool[1]? "YES" : "NO");
-	printf(" > Europe:			%s\n",region_lock_bool[2]? "YES" : "NO");
-	printf(" > Australia:			%s\n",region_lock_bool[3]? "YES" : "NO");
-	printf(" > China:			%s\n",region_lock_bool[4]? "YES" : "NO");
-	printf(" > Korea:			%s\n",region_lock_bool[5]? "YES" : "NO");
-	printf(" > Taiwan:			%s\n",region_lock_bool[6]? "YES" : "NO");
+	printf(" > Japan:                       %s\n",region_lock_bool[0]? "YES" : "NO");
+	printf(" > America:                     %s\n",region_lock_bool[1]? "YES" : "NO");
+	printf(" > Europe:                      %s\n",region_lock_bool[2]? "YES" : "NO");
+	printf(" > Australia:                   %s\n",region_lock_bool[3]? "YES" : "NO");
+	printf(" > China:                       %s\n",region_lock_bool[4]? "YES" : "NO");
+	printf(" > Korea:                       %s\n",region_lock_bool[5]? "YES" : "NO");
+	printf(" > Taiwan:                      %s\n",region_lock_bool[6]? "YES" : "NO");
 	
 	printf("\n[+] Application IDs\n\n");
 	/** Chance Encounter Communications ID **/
 	fseek(icn,0x2034,SEEK_SET);
 	DWORD CECID;
 	fread(&CECID,sizeof(CECID),1,icn);
-	printf("CEC ID:				%08x\n",CECID);
+	printf("CEC ID:                         %08x\n",CECID);
 	
 	/** Match Maker ID **/
 	fseek(icn,0x201C,SEEK_SET);
 	DWORD mmID;
 	fread(&mmID,sizeof(mmID),1,icn);
-	printf("Match Maker ID:			%08x\n",mmID);
+	printf("Match Maker ID:                 %08x\n",mmID);
 	
 	/** Match Maker BIT ID **/
 	fseek(icn,0x2020,SEEK_SET);
@@ -535,7 +609,14 @@ int icn_read(FILE *icn, u8 verbose)
 	DWORD mmBITID2;
 	fread(&mmBITID1,sizeof(mmBITID1),1,icn);
 	fread(&mmBITID2,sizeof(mmBITID2),1,icn);
-	printf("Match Maker BIT ID:		%08x%08x\n\n",mmBITID2,mmBITID1);
+	printf("Match Maker BIT ID:             %08x%08x\n\n",mmBITID2,mmBITID1);
+	
+	/** EULA Version **/
+	fseek(icn,0x202C,SEEK_SET);
+	u8 EULA_VER[2];
+	fread(&EULA_VER,0x2,1,icn);
+	printf("EULA Version:                   %02x.%02x\n\n ",EULA_VER[1],EULA_VER[0]);
+	
 	return 0;
 }
 

@@ -1,7 +1,13 @@
 CTR_Toolkit - make_banner - Generates ICN/BNR files
-Version: 1.2 2013 (C) 3DSGuy
+Version: 2.0 2013 (C) 3DSGuy
 
 /******** Change Log ********/
+
+Version 2.0:
+* Added new language (Traditional Chinese)
+* Can now specify EULA Version
+* Sets region lock correctly now
+* BSF format has changed slighly, re-download sample set for new version
 
 Version 1.2:
 * Refactored main.c (added main.h),

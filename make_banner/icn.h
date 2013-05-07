@@ -31,13 +31,14 @@ along with make_banner.  If not, see <http://www.gnu.org/licenses/>.
 #define FLAG_FAIL 2
 #define REGION_RATING_FAIL 3
 #define REGION_LOCKOUT_FAIL 4
-#define OPTM_BNR_FAIL 5
-#define ID_FAIL 6
-#define MAGIC_FAIL 7
+#define EULA_VER_FAIL 5
+#define OPTM_BNR_FAIL 6
+#define ID_FAIL 7
+#define MAGIC_FAIL 8
 
 //Array Max Values
 #define MAX_READ_LEN 100
-#define MAX_TITLE_NUM 11
+#define MAX_TITLE_NUM 12
 #define SIZE_SHORT_TITLE 0x40
 #define SIZE_LONG_TITLE 0x50
 #define SIZE_PUBLISHER_TITLE 0x40
@@ -68,18 +69,18 @@ ICN_APP_TITLE_STRUCT; //Application Title Name Structure
 typedef struct
 {
 	ICN_APP_TITLE_STRUCT title_array[0x10];
-	// 0 = Japanese Title
-	// 1 = English Title
-	// 2 = French Title
-	// 3 = German Title
-	// 4 = Italian Title
-	// 5 = Spansih Title
-	// 6 = Chinese Title
-	// 7 = Korean Title
-	// 8 = Dutch Title
+	// 0 = Japanese
+	// 1 = English
+	// 2 = French
+	// 3 = German
+	// 4 = Italian
+	// 5 = Spansih
+	// 6 = Simplified Chinese
+	// 7 = Korean
+	// 8 = Dutch
 	// 9 = Portuguese
 	// 10 = Russian
-	// 11 = Reserved
+	// 11 = Traditional Chinese
 	// 12 = Reserved
 	// 13 = Reserved
 	// 14 = Reserved
@@ -115,7 +116,11 @@ typedef struct
 	u8 region_lock[4];
 	u8 match_maker_id[4];
 	u8 match_maker_bit_id[8];
-	u8 byte_flag[8];
+	u8 byte_flag[2];
+	u8 reserved_0[2];
+	u8 eula_minor;
+	u8 eula_major;
+	u8 reserved_1[2];
 	u8 optimal_bnr_frame[4];
 	u8 cec_id[4];
 } __attribute__((__packed__)) 

@@ -24,8 +24,8 @@ along with make_banner.  If not, see <http://www.gnu.org/licenses/>.
 #include "main.h"
 
 //Version Number
-#define MAJOR 1
-#define MINOR 2
+#define MAJOR 2
+#define MINOR 0
 
 
 int icn_process(INPUT_CONTEXT ctx);
