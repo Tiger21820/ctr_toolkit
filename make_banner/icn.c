@@ -146,10 +146,6 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 	u8 bit_flag[MAX_BIT_NUM];
 	//memset(bit_flag, 0, MAX_BIT_NUM);
 	
-	//Setting Static Flags
-	icn.settings.byte_flag[0] = 0x01;
-	icn.settings.byte_flag[1] = 0x01; // Some Dev Apps have this byte flag set to 0x00
-	
 	//Region Age Rating flag
 	int use_age_ratings = FALSE;
 	
@@ -190,7 +186,7 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 				if (get_boolean(bit_flag_key_1[i], icn.bsf) == TRUE){
 					if(icn.verbose_bool)
 						printf("[+] %s was True\n",bit_flag_key_1[i]);
-					icn.settings.byte_flag[0] += bit_flag_value[i];
+					icn.settings.byte_flag[1] += bit_flag_value[i];
 					if(i == 6)
 						use_age_ratings = TRUE;
 				}
@@ -247,7 +243,7 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 						}
 					}
 					if(rating_type == VALID_RATING){
-						region_rating += 0x80;
+						region_rating += 0x80; //Active Rating bitflag
 						icn.settings.ratings.rating[rating_index] = region_rating;
 						if(icn.verbose_bool)
 							printf("[+] Age Restriction for %s was set to %d\n",region_rating_key[i], (region_rating - 0x80));
@@ -267,7 +263,7 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 	else{//If Age Restrictions are not to be used
 		for(int i = 0; i < MAX_RATING_NUM; i++){
 			u8 rating_index = region_rating_struct_index[i];
-			icn.settings.ratings.rating[rating_index] = 0x80;
+			icn.settings.ratings.rating[rating_index] = 0x00;
 			}
 	}
 		
@@ -364,8 +360,8 @@ int icn_settings_proccess(ICN_CONTEXT icn)
 	fseek(icn.bsf, 0x00, SEEK_SET);
 	if(key_search("Options", icn.bsf) == FOUND){
 		if (get_value(default_frame,100,"OptimalBNRFrame",icn.bsf) == FOUND){
-			if(icn.verbose_bool)
-				printf("[+] OptimalBNRFrame was set to %f\n",default_frame);
+			//if(icn.verbose_bool)
+			//	printf("[+] OptimalBNRFrame was set to %f\n",default_frame); //Doesn't work
 			union
 			{
 				float          f;
@@ -578,7 +574,7 @@ int icn_read(FILE *icn, u8 verbose)
 	fread(&region_lock,sizeof(region_lock),1,icn);
 	printf("\nRegion Lock: ");
 	for(int i = 0; i < 4; i++)
-		printf("%02x",region_lock[3-i]);
+		printf("%02x ",region_lock[i]);
 	printf("\n");
 	u8 region_lock_bool[8];
 	resolve_flag(region_lock[0],region_lock_bool);
