@@ -1,7 +1,13 @@
 
+*.o
 *.sh
 *.bat
 make_banner.exe
+make_cdn_cia.exe
+make_cia.exe
+*.cia
+*.rkey
+*.cert
 *.icn
 *.bnr
 *.bsf
