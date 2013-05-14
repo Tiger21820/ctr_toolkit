@@ -1,0 +1,1 @@
+int GenerateMeta(CIA_CONTEXT *ctx);

@@ -1,0 +1,47 @@
+CTR_Toolkit - make_cia - Generates CIA files
+Version: 3.0 2013 (C) 3DSGuy
+
+/******** Change Log ********/
+
+Version 3.0:
+* Initial Public release
+* Supports generating valid CIA files
+* Supports generating CIA files for CTR 
+
+/******** Usage: ********/
+
+Usage: make_cia <options>
+
+OPTIONS                 Possible Values       Explanation
+ -h, --help                                   Print this help.
+ -v, --verbose                                Enable verbose output.
+ -k, --showkeys                               Show the keys being used.
+ -c, --config_file      File-in               CIA Configuration File.
+ -o, --output           File-out              Output CIA file.
+ 
+Examples:
+
+make_cia -c project\build.cfg -o app.cia
+
+/******** Credits ********/
+A big thanks to neimod, as the API for the polarssl crypto lib is based on his implementation in ctrtool. And special thanks to Jl12 and yellows8.
+
+/******** Regarding Input Files ********/
+
+Download the sample input pack: https://dl.dropboxusercontent.com/u/60710927/CTR/make_cia/Sample_Input.7z
+
+You need the RSA-2048 Modulus and Private Exponent, for the Ticket and TMD(and corresponding certificates), and the Commonkey if you plan to encrypt the CIA contents*. If you are fake-signing the TMD/Ticket, the sample pack comes with dummy keyfiles/certs so work need be done there. If you plan to use real RSA keys, you should have enough technical expertise to figure out how setup the ".rkey" files from looking at "ctx.h"
+
+NOTE: There is a keyfile format for the RSA keys used by make_cia, see "ctx.h". 
+
+
+* @CTR_SDK users, the keys you need can be extracted from ctr_makecia32.exe. Instructions for extracting keys: 
+ 1/ Download this archive: https://dl.dropboxusercontent.com/u/60710927/CTR/make_cia/sdk_users.7z
+ 1/ Extract the "Nintendo.MakeCia.Properties.Resources.resources" file, with a program like CodeReflect. 
+ 2/ Then use ResGen.exe, a command line tool included in the above archive, to convert the ".resources" file to a .resx file (usage: ResGen.exe Nintendo.MakeRom.Properties.Resources.resources out.resx)
+ 3/ View "out.resx" in a text editor, then convert the following sections in "out.resx" from base64 to hex and save for later:
+	a) "ctr_aes_common_key_dev0" - this is the dev common key
+	b) "xs9_dpki_rsa_privExp" - this is the Ticket RSA-2048 private exponent
+	c) "cpA_dpki_rsa_privExp" - this is the TMD RSA-2048 private exponent
+ 4/ The above archive contains a near complete collection of input files(use those instead of the ones in the sample input archive), you need only overwrite the last 0x100 bytes of *.rkey files with their RSA-2048 private exponents you extracted in step 3. Then replace set the "CommonKey" in the build.cfg to the hex representation of the dev common key you extracted in step 3.
+
