@@ -23,6 +23,10 @@ Examples:
 
 make_cia -c project\build.cfg -o app.cia
 
+NOTE: The nature of this program lets you have a larger "input" into the CIA creation process(in contrast to ctr_makecia32), so a wide variety of titles(and some not yet created at time of writing) can still be packaged with this program. However this also means that incorrect input can lead to invalid CIAs, so be careful.
+
+NOTE: Meta generation is only possible for titles where Content0 is a CXI, and a CXI key is required for encrypted Content0 in order to extract the data for the Meta region.
+
 /******** Credits ********/
 A big thanks to neimod, as the API for the polarssl crypto lib is based on his implementation in ctrtool. And special thanks to Jl12 and yellows8.
 

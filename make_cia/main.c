@@ -130,9 +130,9 @@ int main(int argc, char *argv[])
 	return 0;
 fail_cleanup:
 	if(ctx->outfile.used == FALSE)
-		printf("[!] Failed to generated cia\n");
+		printf("[!] Failed to generate cia\n");
 	else
-		printf("[!] Failed to generated %s\n",ctx->outfile.argument);
+		printf("[!] Failed to generate %s\n",ctx->outfile.argument);
 	free_buffers(ctx);
 	return 1;
 }

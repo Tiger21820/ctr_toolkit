@@ -538,6 +538,10 @@ int GetContentInfo(CONTENT_INFO *ctx, int content_index, FILE *config_file)
 				return 1;
 			}
 			fseek(config_file,pos,SEEK_SET);
+			if(get_value(buffer,6,"ContentIndex",config_file) == FOUND){
+				ctx->content_index = strtol(buffer, NULL, 10);
+			}
+			fseek(config_file,pos,SEEK_SET);
 			if(key_search("ContentFlags",config_file) == FOUND){
 				pos = ftell(config_file);
 				if(get_boolean("Encrypted",config_file) == TRUE){
