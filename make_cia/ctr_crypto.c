@@ -130,6 +130,7 @@ int ctr_rsa_init(ctr_rsa_context* ctx, RSA_2048_KEY* key, u8 mode)
 				goto clean;
 			if (mpi_read_binary(&ctx->rsa.E, key->e, sizeof(key->e)))
 				goto clean;
+			break;
 		case(RSAKEY_PRIV):
 			if (mpi_read_binary(&ctx->rsa.N, key->n, sizeof(key->n)))
 				goto clean;
@@ -154,7 +155,7 @@ int ctr_rsa2048_sha256_sign(const u8 hash[0x20], u8 signature[0x100], const u8 m
 	ctr_rsa_context ctx;
 	memcpy(key.d,priv_exp,0x100);
 	memcpy(key.n,modulus,0x100);
-	ctr_rsa_init(&ctx,&key,RSAKEY_PUB);
+	ctr_rsa_init(&ctx,&key,RSAKEY_PRIV);
 	u32 result = rsa_sha256_sign(&ctx.rsa,hash,signature);
 	ctr_rsa_free(&ctx);
 	
