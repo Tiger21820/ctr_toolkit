@@ -6,18 +6,21 @@
 #include "tmd.h"
 #include "meta.h"
 
-#define MAJOR 3
-#define MINOR 00
+typedef enum
+{
+	MAJOR = 4,
+	MINOR = 0
+} AppVer;
+
+const char argv_lable[12][15] = {"-h","--help","-v","--verbose","-k","--showkeys","-c","--config_file","-o","--output","-r","--ncsd"};
 
 void app_title(void);
 void help(char *app_name);
 
 int main(int argc, char *argv[])
-{
-	app_title();
-	
+{	
 	//Filter Out Bad number of arguments
-	if (argc < 2 || argc > 7){
+	if (argc < 2){
 		printf("[!] Must Specify Arguments\n");
 		help(argv[0]);
 		return ARGC_FAIL;
@@ -25,11 +28,6 @@ int main(int argc, char *argv[])
 	
 	CIA_CONTEXT *ctx = malloc(sizeof(CIA_CONTEXT));
 	InitialiseSettings(ctx);
-	
-	if (getcwdir(ctx->cwd, 1024) == NULL){
-		printf("[!] Could not store Current Working Directory\n");
-		return IO_FAIL;
-	}
 		
 	for(int i = 1; i < argc; i++){
 		if(strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0){
@@ -37,14 +35,14 @@ int main(int argc, char *argv[])
 			return ARGC_FAIL;
 		}
 		else if(strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0){
-			ctx->verbose_flag = TRUE;
+			ctx->verbose_flag = True;
 		}
 		else if(strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--showkeys") == 0){
-			ctx->showkeys_flag = TRUE;
+			ctx->showkeys_flag = True;
 		}
 		else if(strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--config_file") == 0){
-			if(argv_check(argv[i+1],argc,i) == TRUE){
-				ctx->configfile.used = TRUE;
+			if(argv_check(argv[i+1],argc,i) == True){
+				ctx->configfile.used = True;
 				ctx->configfile.arg_len = strlen(argv[i+1]);
 				ctx->configfile.argument = malloc(ctx->configfile.arg_len+1);
 				memcpy(ctx->configfile.argument,argv[i+1],ctx->configfile.arg_len+1);
@@ -56,8 +54,8 @@ int main(int argc, char *argv[])
 			}
 		}
 		else if(strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0){
-			if(argv_check(argv[i+1],argc,i) == TRUE){
-				ctx->outfile.used = TRUE;
+			if(argv_check(argv[i+1],argc,i) == True){
+				ctx->outfile.used = True;
 				ctx->outfile.arg_len = strlen(argv[i+1]);
 				ctx->outfile.argument = malloc(ctx->outfile.arg_len+1);
 				memcpy(ctx->outfile.argument,argv[i+1],ctx->outfile.arg_len+1);
@@ -68,68 +66,92 @@ int main(int argc, char *argv[])
 				return ARGC_FAIL;
 			}
 		}
+		else if(strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--ncsd") == 0){
+			if(argv_check(argv[i+1],argc,i) == True){
+				ctx->ncsd_convert_flag = True;
+				ctx->ncsdfile.used = True;
+				ctx->ncsdfile.arg_len = strlen(argv[i+1]);
+				ctx->ncsdfile.argument = malloc(ctx->ncsdfile.arg_len+1);
+				memcpy(ctx->ncsdfile.argument,argv[i+1],ctx->ncsdfile.arg_len+1);
+				ctx->ncsdfile.file.used = True;
+				ctx->ncsdfile.file.file = fopen(ctx->ncsdfile.argument,"rb");
+				if(ctx->ncsdfile.file.file == NULL){
+					printf("[!] Failed to open '%s' (NCSD File)\n",ctx->ncsdfile.argument);
+					ctx->ncsdfile.file.used = False;
+					return 1;
+				}
+			}
+			else{
+				printf("[!] Option '%s' requires an argument\n",argv[i]);
+				help(argv[0]);
+				return ARGC_FAIL;
+			}
+		}
 	}
-	
-	if(ctx->configfile.used != TRUE){
+	if(ctx->ncsd_convert_flag == True)
+		goto ncsd_conversion_process;
+	else
+		goto regular_cia_process;
+
+ncsd_conversion_process:
+#ifndef _DEBUG_KEY_BUILD_
+	if(ctx->configfile.used != True){
+			printf("[!] No CIA configuration file was specified\n");
+			goto fail_cleanup;
+	}
+#endif
+	if(GetSettings_NCSD(ctx) != 0){
+			printf("[!] Settings Error\n");
+			goto fail_cleanup;
+	}
+	if(SetupContentData_NCSD(ctx) != 0){
+		printf("[!] Content Parsing error\n");
+		goto fail_cleanup;
+	}
+	goto cia_data_gen;
+
+regular_cia_process:
+	if(ctx->configfile.used != True){
 		printf("[!] No CIA configuration file was specified\n");
 		goto fail_cleanup;
 	}
-	
 	if(GetSettings(ctx) != 0){
 		printf("[!] Settings Error\n");
 		goto fail_cleanup;
 	}
-	
-	if(ctx->outfile.used == FALSE){
-		ctx->outfile.used = TRUE;
-		ctx->outfile.arg_len = 20;
-		ctx->outfile.argument = malloc(ctx->outfile.arg_len);
-		sprintf(ctx->outfile.argument,"%x%02x%02x.cia",ctx->core.TitleID[4],ctx->core.TitleID[5],ctx->core.TitleID[6]);
-	}
-	
-	ctx->outfile.file.used = TRUE;
-	ctx->outfile.file.file = fopen(ctx->outfile.argument,"wb");
-	if(ctx->outfile.file.file == NULL){
-		printf("[!] IO ERROR: Failed to create '%s'\n",ctx->outfile.argument);
-		ctx->outfile.file.used = FALSE;
-		goto fail_cleanup;
-	}
-	
-	if(GenerateTicket(ctx) != 0){
-		printf("[!] Ticket region could not be generated\n");
-		goto fail_cleanup;
-	}
-	
 	if(SetupContentData(ctx) != 0){
 		printf("[!] Content Parsing error\n");
 		goto fail_cleanup;
 	}
+	goto cia_data_gen;
 	
+cia_data_gen:
+	if(GenerateTicket(ctx) != 0){
+		printf("[!] Ticket region could not be generated\n");
+		goto fail_cleanup;
+	}
 	if(GenerateTitleMetaData(ctx) != 0){
 		printf("[!] TMD region could not be generated\n");
 		goto fail_cleanup;
 	}
-	
 	if(GenerateMeta(ctx) != 0){
 		printf("[!] Meta region could not be generated\n");
 		goto fail_cleanup;
 	}
-	
 	if(SetupCIAHeader(ctx) != 0){
 		printf("[!] CIA file header could not be generated\n");
 		goto fail_cleanup;
 	}
-	
 	if(WriteSectionsToOutput(ctx) != 0){
 		printf("[!] Failed to write sections to CIA file\n");
 		goto fail_cleanup;
 	}
 	
-	printf("[+] %s generated Successfully\n",ctx->outfile.argument);
+	printf("[*] %s generated Successfully\n",ctx->outfile.argument);
 	free_buffers(ctx);
 	return 0;
 fail_cleanup:
-	if(ctx->outfile.used == FALSE)
+	if(ctx->outfile.used == False)
 		printf("[!] Failed to generate cia\n");
 	else
 		printf("[!] Failed to generate %s\n",ctx->outfile.argument);
@@ -140,22 +162,31 @@ fail_cleanup:
 int argv_check(char *string, int argc, int index)
 {
 	if(index >= (argc - 1))
-		return FALSE;
-	char argv_lable[arg_num][arg_max_len] = {"-h","--help","-v","--verbose","-k","--showkeys","-c","--config_file","-o","--output"};
-	for(int i = 0; i < arg_num; i++){
+		return False;
+	for(int i = 0; i < 12; i++){
 		if(strcmp(string,argv_lable[i]) == 0)
-			return FALSE;
+			return False;
 	}
-	return TRUE;
+	return True;
 }
 
 void free_buffers(CIA_CONTEXT *ctx)
 {
 	//Closing Files
-	if(ctx->outfile.file.used == TRUE)
+	if(ctx->outfile.file.used == True)
 		fclose(ctx->outfile.file.file);
-	if(ctx->configfile.file.used == TRUE)
+	if(ctx->configfile.file.used == True)
 		fclose(ctx->configfile.file.file);
+	if(ctx->ncsdfile.file.used == True)
+		fclose(ctx->ncsdfile.file.file);
+	
+	//Freeing Arguments
+	if(ctx->outfile.used)
+		free(ctx->outfile.argument);
+	if(ctx->configfile.used)
+		free(ctx->configfile.argument);
+	if(ctx->ncsdfile.used)
+		free(ctx->ncsdfile.argument);
 	
 	//Freeing CIA section buffers
 	if(ctx->header.used)
@@ -166,10 +197,14 @@ void free_buffers(CIA_CONTEXT *ctx)
 		free(ctx->ticket.buffer);
 	if(ctx->tmd.used)
 		free(ctx->tmd.buffer);
+	if(ctx->content.used)
+		free(ctx->content.buffer);
 	if(ctx->meta.used)
 		free(ctx->meta.buffer);
 	if(ctx->ContentInfoMallocFlag)
 		free(ctx->ContentInfo);
+	if(ctx->ncsd_struct_malloc_flag)
+		free(ctx->ncsd_struct);
 	
 	//Freeing Main context
 	free(ctx);
@@ -183,12 +218,13 @@ void app_title(void)
 
 void help(char *app_name)
 {
-	printf("\nUsage: %s <options>\n", app_name);
-	putchar('\n');
+	app_title();
+	printf("Usage: %s <options>\n", app_name);
 	printf("OPTIONS                 Possible Values       Explanation\n");
 	printf(" -h, --help                                   Print this help.\n");
 	printf(" -v, --verbose                                Enable verbose output.\n");
 	printf(" -k, --showkeys                               Show the keys being used.\n");
 	printf(" -c, --config_file      File-in               CIA Configuration File.\n");
+	printf(" -r, --ncsd             File-in               Convert NCSD Image to CIA.\n");
 	printf(" -o, --output           File-out              Output CIA file.\n");
 }

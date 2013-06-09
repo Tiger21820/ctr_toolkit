@@ -72,7 +72,9 @@ typedef struct
 	u8 modcrypt_area_2_offset[4];
 	u8 modcrypt_area_2_size[4];
 	u8 title_id[8];
-	u8 reserved_4[0xC8];
+	u8 save_data_size[4];
+	u8 unknown_data[4];
+	u8 reserved_4[0xC0];
 	
 	// TWL and Signed NTR
 	u8 arm9_with_sec_area_sha1_hmac[0x14];
@@ -89,8 +91,7 @@ typedef struct
 } __attribute__((__packed__)) 
 SRL_HEADER;
 
-int GetCoreContentSRL(CORE_CONTENT_INFO *core,u8 SRLType,FILE *srl);
-void GetNTRTitleID(u8 *game_code, u8 *title_id);
+int GetCoreContentSRL(CORE_CONTENT_INFO *core,FILE *srl);
 void GetTWLTitleID(u8 *title_id_old, u8 *title_id);
 
 

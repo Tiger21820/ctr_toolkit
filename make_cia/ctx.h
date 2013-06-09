@@ -1,26 +1,50 @@
 typedef enum
 {
-	aes_key_fail = 1,
-	rsa_key_fail,
-	cia_type_fail,
-	cert_gen_fail,
-	content_mismatch,
-	ticket_gen_fail,
-	tmd_gen_fail,
-	cia_header_gen_fail,
-} errors;
-
-typedef enum
-{
 	common = 1,
 	unique
 } ticket_type;
 
+typedef enum
+{
+	TYPE_CTR = 0x40,
+	TYPE_DATA = 0x8
+} title_type;
+
+typedef enum
+{
+	RSA_4096_SHA1 = 0x00010000,
+	RSA_2048_SHA1 = 0x00010001,
+	ECC_SHA1 = 0x00010002,
+	RSA_4096_SHA256 = 0x00010003,
+	RSA_2048_SHA256 = 0x00010004,
+	ECC_SHA256 = 0x00010005
+} sig_types;
+
+typedef enum
+{
+	NCCH_MAGIC = 0x4E434348,
+	NCSD_MAGIC = 0x4E435344
+} file_magic;
+
+typedef enum
+{
+	KB = 1024,
+	MB = 1048576,
+	GB = 1073741824
+} file_size;
+
+//Define PubK Types
+typedef enum
+{
+	RSA_4096_PUBK = 0,
+	RSA_2048_PUBK,
+	ECC_PUBK
+} pubk_types;
+
 //Content Platforms
 typedef enum
 {
-	NTR = 1,
-	TWL,
+	TWL = 1,
 	CTR
 } content_platform;
 
@@ -64,7 +88,8 @@ typedef enum
 typedef enum
 {
 	dev = 1,
-	prod = 2
+	prod,
+	test
 } cia_type;
 
 //Key Struct
@@ -120,6 +145,7 @@ typedef struct
 	//RSA Keys
 	RSA_2048_KEY ticket;
 	RSA_2048_KEY tmd;
+	RSA_2048_KEY NcsdCfa;
 } __attribute__((__packed__)) 
 KEY_STORE;
 
@@ -148,6 +174,35 @@ typedef struct
 	u64 size;
 } __attribute__((__packed__)) 
 COMPONENT_STRUCT;
+
+typedef struct
+{
+	int active;
+	int sig_valid;
+	u8 fs_type;
+	u8 crypto_type;
+	u32 offset;
+	u32 size;
+	u64 title_id;
+} PARTITION_DATA;
+
+typedef struct
+{
+	int valid;
+	int sig_valid;
+	int type;
+	u8 signature[0x100];
+	u8 ncsd_header_hash[0x20];
+	/**
+	NCSD_HEADER header;
+	CARD_INFO_HEADER card_info;
+	DEV_CARD_INFO_HEADER dev_card_info;
+	**/
+	
+	u64 rom_size;
+	u64 used_rom_size;
+	PARTITION_DATA partition_data[8];
+} NCSD_STRUCT;
 
 typedef struct
 {
@@ -182,6 +237,9 @@ typedef struct
 	//TMD Data
 	char TMDIssuer[0x40];
 	u8 tmd_format_ver;
+	u8 save_data_size[4];
+	u8 unknown_data_0[4];
+	u8 twl_data[4];
 } __attribute__((__packed__)) 
 CORE_CONTENT_INFO;
 
@@ -192,11 +250,11 @@ typedef struct
 	COMPONENT_STRUCT certchain;
 	COMPONENT_STRUCT ticket;
 	COMPONENT_STRUCT tmd;
+	COMPONENT_STRUCT content;
 	COMPONENT_STRUCT meta;
 	
 	//Content Data
 	u16 ContentCount;
-	u64 TotalContentSize;
 	u8 ContentInfoMallocFlag;
 	CONTENT_INFO *ContentInfo; //Content Info
 	
@@ -209,12 +267,17 @@ typedef struct
 	//Input Info
 	OPTION_CTX configfile;
 	OPTION_CTX outfile;
+	OPTION_CTX ncsdfile;
+	
+	//NCSD Data
+	u8 ncsd_struct_malloc_flag;
+	NCSD_STRUCT *ncsd_struct;
 	
 	//Settings
+	u8 ncsd_convert_flag;
 	u8 verbose_flag;
 	u8 meta_flag;
 	u8 showkeys_flag;
-	char cwd[1024]; //Current Working Directory
 } __attribute__((__packed__)) 
 CIA_CONTEXT;
 

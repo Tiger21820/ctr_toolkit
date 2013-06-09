@@ -5,10 +5,6 @@
 #include "polarssl/rsa.h"
 #include "polarssl/sha2.h"
 
-#define RSAKEY_INVALID 0
-#define RSAKEY_PUB 1
-#define RSAKEY_PRIV 2
-
 typedef struct
 {
 	u8 ctr[16];
@@ -33,9 +29,9 @@ void ctr_init_aes_cbc(ctr_aes_context* ctx,u8 key[16],u8 iv[16], u8 mode);
 void ctr_aes_cbc(ctr_aes_context* ctx,u8* input,u8* output,u32 size,u8 mode);
 int ctr_rsa_init(ctr_rsa_context* ctx, RSA_2048_KEY* key, u8 mode);
 void ctr_rsa_free(ctr_rsa_context* ctx);
-int ctr_rsa_verify_hash(const u8 signature[0x100], const u8 hash[0x20], RSA_2048_KEY* key);
-int ctr_rsa_sign_hash(const u8 hash[0x20], u8 signature[0x100], RSA_2048_KEY* key);
-int ctr_rsa_sha256_sign( rsa_context *ctx,const unsigned char *hash,unsigned char *sig );
+int ctr_rsa2048_sha256_sign(const u8 hash[0x20], u8 signature[0x100], const u8 modulus[0x100], const u8 priv_exp[0x100]);
+int ctr_rsa2048_sha256_verify(const u8 hash[0x20], u8 signature[0x100], const u8 modulus[0x100]);
+int rsa_sha256_sign( rsa_context *ctx,const unsigned char *hash,unsigned char *sig );
 
 #ifdef __cplusplus
 }

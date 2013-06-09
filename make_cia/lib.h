@@ -35,6 +35,6 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 #include "types.h"
 #include "ctx.h"
 #include "utils.h"
-
+#include "dev_keys.h"
 
 

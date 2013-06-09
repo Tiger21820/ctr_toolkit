@@ -4,7 +4,7 @@
 
 int GenerateTicket(CIA_CONTEXT *ctx)
 {
-	ctx->ticket.used = TRUE;
+	ctx->ticket.used = True;
 	ctx->ticket.size = (sizeof(TICKET_STRUCTURE)+ sizeof(TIK_2048_SIG_CONTEXT));
 	ctx->ticket.buffer = malloc(ctx->ticket.size);
 	if(ctx->ticket.buffer == NULL){
@@ -28,26 +28,22 @@ int GenerateTicket(CIA_CONTEXT *ctx)
 	memcpy(ticket.TitleID,ctx->core.TitleID,0x8);
 	memcpy(ticket.TicketVersion,ctx->core.TicketVersion,0x2);
 	
-	u8 result = 0;
-	
-	result = EncryptTitleKey(ticket.EncryptedTitleKey,ctx->keys.title_key.key,ctx->keys.common_key.key,ctx->core.TitleID);
-	if(result != 0){
+	if(EncryptTitleKey(ticket.EncryptedTitleKey,ctx->keys.title_key.key,ctx->keys.common_key.key,ctx->core.TitleID) != 0){
 		printf("[!] Failed to encrypt titlekey\n");
-		return result;
+		return Fail;
 	}
 	if(ctx->showkeys_flag)
 		memdump(stdout,"\n[+] Encrypted Title Key:   ",ticket.EncryptedTitleKey,0x10);
 	
-	result = SetStaticData(dev,ticket.StaticData);
-	if(result != 0){
+	if(SetStaticData(dev,ticket.StaticData) != 0){
 		printf("[!] ERROR in Generating Ticket\n");
-		return result;
+		return Fail;
 	}
 	
-	u32_to_u8(sig.sig_type,0x00010004,BIG_ENDIAN);
+	u32_to_u8(sig.sig_type,RSA_2048_SHA256,BE);
 	u8 hash[0x20];
 	ctr_sha_256(&ticket,sizeof(TICKET_STRUCTURE),hash);
-	if(ctr_rsa_sign_hash(hash,sig.data, &ctx->keys.ticket) != Good){
+	if(ctr_rsa2048_sha256_sign(hash,sig.data,ctx->keys.ticket.n,ctx->keys.ticket.d) != Good){
 		printf("[!] Failed to sign ticket\n");
 		return ticket_gen_fail;
 	}
@@ -58,9 +54,6 @@ int GenerateTicket(CIA_CONTEXT *ctx)
 	
 	memcpy(ctx->ticket.buffer,&sig,sizeof(TIK_2048_SIG_CONTEXT));
 	memcpy((ctx->ticket.buffer + sizeof(TIK_2048_SIG_CONTEXT)),&ticket,sizeof(TICKET_STRUCTURE));
-
-	
-	
 	return 0;
 }
 
@@ -96,16 +89,9 @@ int EncryptTitleKey(u8 EncTitleKey[0x10], u8 *DecTitleKey, u8 *CommonKey, u8 *Ti
 int SetStaticData(u8 mode, u8 section[0x30])
 {
 	switch(mode){
-		case(dev):
-			memcpy((section+0x00),(u8[]){0x00,0x01,0x00,0x14,0x00,0x00,0x00,0xAC,0x00,0x00,0x00,0x14,0x00,0x01,0x00,0x14},0x10);
-			memcpy((section+0x10),(u8[]){0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x28,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x84},0x10);
-			memcpy((section+0x20),(u8[]){0x00,0x00,0x00,0x84,0x00,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00},0x10);
-			break;
-		case(prod):
-			memcpy((section+0x00),(u8[]){0x00,0x01,0x00,0x14,0x00,0x00,0x00,0xAC,0x00,0x00,0x00,0x14,0x00,0x01,0x00,0x14},0x10);
-			memcpy((section+0x10),(u8[]){0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x28,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x84},0x10);
-			memcpy((section+0x20),(u8[]){0x00,0x00,0x00,0x84,0x00,0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x00,0x00,0x00},0x10);
-			break;
+		case dev : memcpy(section,dev_static_ticket_data,0x30); break;
+		case prod : memcpy(section,prod_static_ticket_data,0x30); break;
+		case test : memset(section,0xff,0x30); break;
 		default: printf("[!] Mode not recogised\n"); return ticket_gen_fail;
 	}
 	return 0;

@@ -19,20 +19,39 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <stdint.h>
 //Bools
-#define TRUE 1
-#define FALSE 0
+typedef enum
+{
+	False,
+	True
+} boolean;
 
-//Errors
-#define IO_FAIL 1
-#define FILE_PROCESS_FAIL 2
-#define ARGC_FAIL 3
-#define ARGV_FAIL 4
-#define Good 0
-#define Fail 1
+typedef enum
+{
+	Good,
+	Fail
+} return_basic;
 
-#define MAKE 1
-#define READ 2
-#define EXTRACT 3
+typedef enum
+{
+	ARGC_FAIL = 1,
+	ARGV_FAIL,
+	aes_key_fail,
+	rsa_key_fail,
+	cia_type_fail,
+	cert_gen_fail,
+	content_mismatch,
+	ticket_gen_fail,
+	tmd_gen_fail,
+	cia_header_gen_fail
+} errors;
+
+typedef enum
+{
+	BIG_ENDIAN = 0,
+	LITTLE_ENDIAN = 1,
+	BE = 0,
+	LE = 1
+} endianness_flag;
 
 typedef unsigned char   u8;
 typedef unsigned short  u16;

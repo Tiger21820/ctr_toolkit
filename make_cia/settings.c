@@ -3,7 +3,7 @@
 #include "yaml.h"
 #include "settings.h"
 #include "srl.h"
-#include "ncch.h"
+#include "ncsd.h"
 
 void InitialiseSettings(CIA_CONTEXT *ctx)
 {
@@ -12,23 +12,42 @@ void InitialiseSettings(CIA_CONTEXT *ctx)
 
 int GetSettings(CIA_CONTEXT *ctx)
 {
-	ctx->configfile.file.used = TRUE;
+	ctx->configfile.file.used = True;
 	ctx->configfile.file.file = fopen(ctx->configfile.argument,"rb");
 	if(ctx->configfile.file.file == NULL){
 		printf("[!] Failed to open '%s'\n",ctx->configfile.argument);
-		ctx->configfile.file.used = FALSE;
+		ctx->configfile.file.used = False;
 		return 1;
 	}
+	
+#ifdef _DEBUG_KEY_BUILD_
+	memcpy(ctx->keys.common_key.key,ctr_aes_common_key_dev0,16);
+	ctx->keys.common_key_id = 0;
+	
+	memcpy(ctx->keys.ticket.n,xs9_dpki_rsa_pubMod,0x100);
+	memcpy(ctx->keys.ticket.d,xs9_dpki_rsa_privExp,0x100);
+	memcpy(ctx->keys.tmd.n,cpA_dpki_rsa_pubMod,0x100);
+	memcpy(ctx->keys.tmd.d,cpA_dpki_rsa_privExp,0x100);
+	memcpy(ctx->keys.NcsdCfa.n,DevNcsdCfa_pubMod,0x100);
+	memcpy(ctx->keys.NcsdCfa.d,DevNcsdCfa_privExp,0x100);
+	
+	ctx->certchain.used = True;
+	ctx->certchain.size = 0xA00;
+	ctx->certchain.buffer = malloc(ctx->certchain.size);
+	memcpy(ctx->certchain.buffer,CIA_Certificate_Chain,0xA00);
+#endif
 	
 	if(LoadAESKeys(ctx) != 0){
 		return 1;
 	}
+#ifndef _DEBUG_KEY_BUILD_	
 	if(LoadRSAKeys(ctx) != 0){
 		return 1;
 	}
 	if(ImportCertificates(ctx) != 0){
 		return 1;
 	}
+#endif
 	if(GetCoreInfo(ctx) != 0){
 		return 1;
 	}
@@ -37,23 +56,108 @@ int GetSettings(CIA_CONTEXT *ctx)
 	}
 	
 	if(ctx->showkeys_flag){
-		printf("\n[+] Imported AES Key Data\n");
+		printf("\n[+] AES Key Data\n");
 		memdump(stdout,"CommonKey:   ",ctx->keys.common_key.key,0x10);
 		printf("CommonKeyID: %02x\n",ctx->keys.common_key_id);
 		memdump(stdout,"TitleKey:    ",ctx->keys.title_key.key,0x10);
 		memdump(stdout,"CXIKey:      ",ctx->keys.ncch_key.key,0x10);
-		printf("[+] Imported RSA Key Data\n");
+		printf("[+] RSA Key Data\n");
 		printf(" > Ticket:\n");
 		PrintRSAKeyData(&ctx->keys.ticket);
 		printf("\n > Title Meta Data:\n");
 		PrintRSAKeyData(&ctx->keys.tmd);
+		printf("\n > Dev NCSD/CFA:\n");
+		PrintRSAKeyData(&ctx->keys.NcsdCfa);
 	}
 	if(ctx->verbose_flag){
 		printf("[+] Content Data:\n");
 		memdump(stdout, "Title ID:               ", ctx->core.TitleID, 0x8);
 		memdump(stdout, "Ticket ID:              ", ctx->core.TicketID, 0x8);
-		printf("Title Version:          v%d\n",u8_to_u16(ctx->core.TitleVersion,BIG_ENDIAN));
-		printf("Ticket Version:         v%d\n",u8_to_u16(ctx->core.TicketVersion,BIG_ENDIAN));
+		printf("Title Version:          v%d\n",u8_to_u16(ctx->core.TitleVersion,BE));
+		printf("Ticket Version:         v%d\n",u8_to_u16(ctx->core.TicketVersion,BE));
+		printf("SaveData Size:          %d KB\n",u8_to_u32(ctx->core.save_data_size,LE)/1024);
+		memdump(stdout, "TitleType:              ", ctx->core.Title_type, 0x4);
+		printf("Ticket Issuer:          %s\n",ctx->core.TicketIssuer);
+		printf("TMD Issuer:             %s\n",ctx->core.TMDIssuer);
+	}
+	
+	
+	return 0;
+}
+
+int GetSettings_NCSD(CIA_CONTEXT *ctx)
+{
+#ifdef _DEBUG_KEY_BUILD_
+	memcpy(ctx->keys.common_key.key,ctr_aes_common_key_dev0,16);
+	ctx->keys.common_key_id = 0;
+	memcpy(ctx->keys.title_key.key,zeros_fixed_aesKey,16);
+	memcpy(ctx->keys.ncch_key.key,zeros_fixed_aesKey,16);
+	
+	memcpy(ctx->keys.ticket.n,xs9_dpki_rsa_pubMod,0x100);
+	memcpy(ctx->keys.ticket.d,xs9_dpki_rsa_privExp,0x100);
+	memcpy(ctx->keys.tmd.n,cpA_dpki_rsa_pubMod,0x100);
+	memcpy(ctx->keys.tmd.d,cpA_dpki_rsa_privExp,0x100);
+	memcpy(ctx->keys.NcsdCfa.n,DevNcsdCfa_pubMod,0x100);
+	memcpy(ctx->keys.NcsdCfa.d,DevNcsdCfa_privExp,0x100);
+		
+	ctx->certchain.used = True;
+	ctx->certchain.size = 0xA00;
+	ctx->certchain.buffer = malloc(ctx->certchain.size);
+	memcpy(ctx->certchain.buffer,CIA_Certificate_Chain,0xA00);
+#endif
+	if(ctx->configfile.used != True){
+		if(GetCoreInfo_NCSD(ctx) != 0){
+			return 1;
+		}
+		goto show_content_info;
+	}
+	ctx->configfile.file.used = True;
+	ctx->configfile.file.file = fopen(ctx->configfile.argument,"rb");
+	if(ctx->configfile.file.file == NULL){
+		printf("[!] Failed to open '%s'\n",ctx->configfile.argument);
+		ctx->configfile.file.used = False;
+		return 1;
+	}
+	
+	if(LoadAESKeys(ctx) != 0){
+		return 1;
+	}
+#ifndef _DEBUG_KEY_BUILD_	
+	if(LoadRSAKeys(ctx) != 0){
+		return 1;
+	}
+	if(ImportCertificates(ctx) != 0){
+		return 1;
+	}
+#endif
+	if(GetCoreInfo_NCSD(ctx) != 0){
+		return 1;
+	}
+	if(SetBuildSettings(ctx) != 0){	
+		return 1;
+	}
+show_content_info:	
+	if(ctx->showkeys_flag){
+		printf("\n[+] AES Key Data\n");
+		memdump(stdout,"CommonKey:   ",ctx->keys.common_key.key,0x10);
+		printf("CommonKeyID: %02x\n",ctx->keys.common_key_id);
+		memdump(stdout,"TitleKey:    ",ctx->keys.title_key.key,0x10);
+		memdump(stdout,"CXIKey:      ",ctx->keys.ncch_key.key,0x10);
+		printf("[+] RSA Key Data\n");
+		printf(" > Ticket:\n");
+		PrintRSAKeyData(&ctx->keys.ticket);
+		printf("\n > Title Meta Data:\n");
+		PrintRSAKeyData(&ctx->keys.tmd);
+		printf("\n > Dev NCSD/CFA:\n");
+		PrintRSAKeyData(&ctx->keys.NcsdCfa);
+	}
+	if(ctx->verbose_flag){
+		printf("[+] Content Data:\n");
+		memdump(stdout, "Title ID:               ", ctx->core.TitleID, 0x8);
+		memdump(stdout, "Ticket ID:              ", ctx->core.TicketID, 0x8);
+		printf("Title Version:          v%d\n",u8_to_u16(ctx->core.TitleVersion,BE));
+		printf("Ticket Version:         v%d\n",u8_to_u16(ctx->core.TicketVersion,BE));
+		printf("SaveData Size:          %d KB\n",u8_to_u32(ctx->core.save_data_size,LE)/1024);
 		memdump(stdout, "TitleType:              ", ctx->core.Title_type, 0x4);
 		printf("Ticket Issuer:          %s\n",ctx->core.TicketIssuer);
 		printf("TMD Issuer:             %s\n",ctx->core.TMDIssuer);
@@ -68,8 +172,9 @@ int LoadAESKeys(CIA_CONTEXT *ctx)
 	fseek(ctx->configfile.file.file,0x0,SEEK_SET);
 	if(key_search("AESKeys",ctx->configfile.file.file) == FOUND){
 		long pos = ftell(ctx->configfile.file.file);
+#ifndef _DEBUG_KEY_BUILD_
 		if(get_value(keybuff,33,"CommonKey",ctx->configfile.file.file) == FOUND){
-			char_to_int_array(ctx->keys.common_key.key,keybuff,0x10,BIG_ENDIAN,16);
+			char_to_int_array(ctx->keys.common_key.key,keybuff,0x10,BE,16);
 		}
 		else{
 			printf("[!] Common Key was not specified\n");
@@ -77,15 +182,16 @@ int LoadAESKeys(CIA_CONTEXT *ctx)
 		}
 		fseek(ctx->configfile.file.file,pos,SEEK_SET);
 		if(get_value(keybuff,3,"CommonKeyID",ctx->configfile.file.file) == FOUND){
-			char_to_int_array(&ctx->keys.common_key_id,keybuff,1,BIG_ENDIAN,16);
+			char_to_int_array(&ctx->keys.common_key_id,keybuff,1,BE,16);
 		}
 		else{
 			printf("[!] Common Key ID was not specified\n");
 			goto failcleanup;
 		}
+#endif
 		fseek(ctx->configfile.file.file,pos,SEEK_SET);
 		if(get_value(keybuff,33,"TitleKey",ctx->configfile.file.file) == FOUND){
-			char_to_int_array(ctx->keys.title_key.key,keybuff,0x10,BIG_ENDIAN,16);
+			char_to_int_array(ctx->keys.title_key.key,keybuff,0x10,BE,16);
 		}
 		else{
 			printf("[+] Title Key was not specified, using default Title Key\n");
@@ -93,7 +199,7 @@ int LoadAESKeys(CIA_CONTEXT *ctx)
 		}
 		fseek(ctx->configfile.file.file,pos,SEEK_SET);
 		if(get_value(keybuff,33,"CXIKey",ctx->configfile.file.file) == FOUND){
-			char_to_int_array(ctx->keys.ncch_key.key,keybuff,0x10,BIG_ENDIAN,16);
+			char_to_int_array(ctx->keys.ncch_key.key,keybuff,0x10,BE,16);
 		}
 		else{
 			printf("[+] CXI Key was not specified, generating meta region may not be possible\n");
@@ -104,11 +210,13 @@ int LoadAESKeys(CIA_CONTEXT *ctx)
 		printf("[!] Could not locate 'AESKeys' section in %s\n",ctx->configfile.argument);
 	}
 	return 0;
+#ifndef _DEBUG_KEY_BUILD_
 failcleanup:
 	free(keybuff);
 	return 1;
+#endif
 }
-
+#ifndef _DEBUG_KEY_BUILD_	
 int LoadRSAKeys(CIA_CONTEXT *ctx)
 {
 	char *filepath = malloc(100);
@@ -150,15 +258,35 @@ int LoadRSAKeys(CIA_CONTEXT *ctx)
 			printf("[!] TMD RSA Key file was not specified\n");
 			goto failcleanup;
 		}
+		fseek(ctx->configfile.file.file,pos,SEEK_SET);
+		if(get_value(filepath,100,"DevNcsdCfa",ctx->configfile.file.file) == FOUND){
+			FILE *dnc_key = fopen(filepath,"rb");
+			if(dnc_key == NULL){
+				printf("[!] Could not open, %s\n",filepath);
+				goto failcleanup;
+			}
+			u8 result = LoadRSAKeyFile(&ctx->keys.NcsdCfa,dnc_key);
+			fclose(dnc_key);
+			if(result != 0){
+				printf("[!] DevNcsdCfa Key file Error\n");
+				goto failcleanup;
+			}
+		}
 	}
 	else{
 		printf("[!] Could not locate 'RSAKeys' section in %s\n",ctx->configfile.argument);
 		goto failcleanup;
 	}
-	return 0;
+	
+	goto cleanup;
+	
 failcleanup:
 	free(filepath);
 	return 1;
+cleanup:
+	free(filepath);
+	return 0;
+
 }
 
 int LoadRSAKeyFile(RSA_2048_KEY *ctx, FILE *file)
@@ -169,26 +297,27 @@ int LoadRSAKeyFile(RSA_2048_KEY *ctx, FILE *file)
 	fseek(file,0x0,SEEK_SET);
 	fread(&header,sizeof(CRKF_HEADER),1,file);
 
-	if(u8_to_u32(header.magic,BIG_ENDIAN) != 0x43524B46){
+	if(u8_to_u32(header.magic,BE) != 0x43524B46){
 		printf("[!] Key File is corrupt\n");
 		return rsa_key_fail;
 	}
 	
-	if(u8_to_u16(header.rsatype,BIG_ENDIAN) != 0x1){
+	if(u8_to_u16(header.rsatype,BE) != 0x1){
 		printf("[!] Only RSA-2048 is supported\n");
 		return rsa_key_fail;
 	}
 	
 	ctx->keytype = RSAKEY_PRIV;
 	
-	ReadFile_u32(ctx->n,u8_to_u32(header.n_offset,BIG_ENDIAN),u8_to_u32(header.n_size,BIG_ENDIAN),file);
-	ReadFile_u32(ctx->e,u8_to_u32(header.e_offset,BIG_ENDIAN),u8_to_u32(header.e_size,BIG_ENDIAN),file);
-	ReadFile_u32(ctx->d,u8_to_u32(header.d_offset,BIG_ENDIAN),u8_to_u32(header.d_size,BIG_ENDIAN),file);
-	ReadFile_u32(ctx->name,u8_to_u32(header.name_offset,BIG_ENDIAN),u8_to_u32(header.name_size,BIG_ENDIAN),file);
-	ReadFile_u32(ctx->issuer,u8_to_u32(header.issuer_offset,BIG_ENDIAN),u8_to_u32(header.issuer_size,BIG_ENDIAN),file);
+	ReadFile_u32(ctx->n,u8_to_u32(header.n_offset,BE),u8_to_u32(header.n_size,BE),file);
+	ReadFile_u32(ctx->e,u8_to_u32(header.e_offset,BE),u8_to_u32(header.e_size,BE),file);
+	ReadFile_u32(ctx->d,u8_to_u32(header.d_offset,BE),u8_to_u32(header.d_size,BE),file);
+	ReadFile_u32(ctx->name,u8_to_u32(header.name_offset,BE),u8_to_u32(header.name_size,BE),file);
+	ReadFile_u32(ctx->issuer,u8_to_u32(header.issuer_offset,BE),u8_to_u32(header.issuer_size,BE),file);
 	
 	return 0;
 }
+#endif
 
 void PrintRSAKeyData(RSA_2048_KEY *ctx)
 {
@@ -197,11 +326,12 @@ void PrintRSAKeyData(RSA_2048_KEY *ctx)
 	printf("\n");
 	memdump(stdout, "n:           ", ctx->n, 0x100);
 	printf("\n");
-	memdump(stdout, "e:           ", ctx->e, 0x3);
-	printf("\n");
+	//memdump(stdout, "e:           ", ctx->e, 0x3);
+	//printf("\n");
 	memdump(stdout, "d:           ", ctx->d, 0x100);
 }
 
+#ifndef _DEBUG_KEY_BUILD_	
 int ImportCertificates(CIA_CONTEXT *ctx)
 {
 	CERT_CONTEXT *cert_ctx = malloc(sizeof(CERT_CONTEXT));
@@ -234,7 +364,7 @@ int ImportCertificates(CIA_CONTEXT *ctx)
 		goto failcleanup;
 	}
 	
-	ctx->certchain.used = TRUE;
+	ctx->certchain.used = True;
 	ctx->certchain.size = cert_ctx->ca.size + cert_ctx->ticket.size + cert_ctx->tmd.size;
 	ctx->certchain.buffer = malloc(ctx->certchain.size);
 	memcpy((ctx->certchain.buffer+0),cert_ctx->ca.data,cert_ctx->ca.size);
@@ -290,11 +420,11 @@ int ImportCertificateFile(CERT_BUFF *buff, char *cert_lable, FILE *config_file)
 		goto failcleanup;
 	}
 	
-	u32 SigType;
-	u32 SigSize;
-	u32 SigPaddingSize;
+	u32 SigSize = 0;
+	u32 SigPaddingSize = 0;
+	u8 SigType[4];
 	fread(&SigType,0x4,1,cert);
-	switch(SigType){
+	switch(u8_to_u32(SigType,BE)){
 		case(RSA_4096_SHA1): SigSize = 0x200; SigPaddingSize = 0x3C; break;
 		case(RSA_2048_SHA1): SigSize = 0x100; SigPaddingSize = 0x3C; break;
 		case(ECC_SHA1): SigSize = 0x3C; SigPaddingSize = 0x40; break;
@@ -315,7 +445,7 @@ int ImportCertificateFile(CERT_BUFF *buff, char *cert_lable, FILE *config_file)
 	
 	u32 PublicKeySize;
 	u32 PublicKeyPaddingSize;
-	switch(u8_to_u32(header.type,BIG_ENDIAN)){
+	switch(u8_to_u32(header.type,BE)){
 		case(RSA_4096_PUBK): PublicKeySize = 0x204; PublicKeyPaddingSize = 0x34; break;
 		case(RSA_2048_PUBK): PublicKeySize = 0x104; PublicKeyPaddingSize = 0x34; break;
 		case(ECC_PUBK): PublicKeySize = 0x3C; PublicKeyPaddingSize = 0x3C; break;
@@ -346,6 +476,7 @@ failcleanup2:
 	free(issuer);
 	return 1;
 }
+#endif
 
 int GetCoreInfo(CIA_CONTEXT *ctx)
 {
@@ -392,9 +523,7 @@ int GetCoreInfo(CIA_CONTEXT *ctx)
 		return 1;
 	}
 	
-	if(strcmp(typebuff,"NTR") == 0)
-		ctx->core.Platform = NTR;
-	else if(strcmp(typebuff,"TWL") == 0)
+	if(strcmp(typebuff,"TWL") == 0)
 		ctx->core.Platform = TWL;
 	else if(strcmp(typebuff,"CTR") == 0)
 		ctx->core.Platform = CTR;
@@ -412,10 +541,10 @@ int GetCoreInfo(CIA_CONTEXT *ctx)
 	
 	u8 core_get_result = 1;
 	
+	ctx->meta_flag = False;
 	switch(ctx->core.Platform){
-		case(NTR): core_get_result = GetCoreContentSRL(&ctx->core,NTR,content); break;
-		case(TWL): core_get_result = GetCoreContentSRL(&ctx->core,TWL,content); break;
-		case(CTR): core_get_result = GetCoreContentNCCH(&ctx->core,content); break;
+		case(TWL): core_get_result = GetCoreContentSRL(&ctx->core,content); break;
+		case(CTR): core_get_result = GetCoreContentNCCH(ctx,&ctx->core,0x0,content); break;
 	}
 	
 	if(core_get_result != 0){
@@ -424,7 +553,7 @@ int GetCoreInfo(CIA_CONTEXT *ctx)
 		return 1;
 	}
 	
-	u32_to_u8(ctx->core.Title_type,TYPE_CTR,BIG_ENDIAN);
+	u32_to_u8(ctx->core.Title_type,TYPE_CTR,BE);
 	memset(ctx->core.DeviceID,0x0,0x4);
 	ctx->core.tmd_format_ver = 0x1;
 	ctx->core.ticket_format_ver = 0x1;
@@ -442,6 +571,40 @@ int GetCoreInfo(CIA_CONTEXT *ctx)
 	return 0;
 }
 
+int GetCoreInfo_NCSD(CIA_CONTEXT *ctx)
+{
+	ctx->ncsd_struct_malloc_flag = True;
+	ctx->ncsd_struct = malloc(sizeof(NCSD_STRUCT));
+	if(GetNCSDData(ctx,ctx->ncsd_struct,ctx->ncsdfile.file.file) != 0)
+		return 1;
+	ctx->meta_flag = False;
+	GetCoreContentNCCH(ctx,&ctx->core,ctx->ncsd_struct->partition_data[0].offset,ctx->ncsdfile.file.file);
+	ctx->ContentCount = 0;
+	for(int i = 0; i < 8; i++){
+		if(ctx->ncsd_struct->partition_data[i].active)
+			ctx->ContentCount++;
+	}
+	
+	u32_to_u8(ctx->core.Title_type,TYPE_CTR,BE);
+	memset(ctx->core.DeviceID,0x0,0x4);
+	ctx->core.tmd_format_ver = 0x1;
+	ctx->core.ticket_format_ver = 0x1;
+	ctx->core.ca_crl_version = 0x0;
+	ctx->core.signer_crl_version = 0x0;
+	
+	u8 hash[0x20];
+	u8 *tmp = malloc(100);
+	memcpy(tmp,ctx->ncsdfile.argument,ctx->ncsdfile.arg_len);
+	ctr_sha_256(tmp,100,hash);
+	free(tmp);
+	memcpy(ctx->core.TicketID,&hash,0x8);
+	
+	SetTicketIssuer(ctx);
+	SetTitleMetaDataIssuer(ctx);
+	
+	return 0;
+}
+
 int SetBuildSettings(CIA_CONTEXT *ctx)
 {
 	char settingbuff[100];
@@ -449,36 +612,35 @@ int SetBuildSettings(CIA_CONTEXT *ctx)
 	if(key_search("BuildSettings",ctx->configfile.file.file) == FOUND){
 		long pos = ftell(ctx->configfile.file.file);
 		if(get_value(settingbuff,17,"OverrideTitleID",ctx->configfile.file.file) == FOUND){
-			printf("\n[+] Overriding original TitleID with '%s'\n",settingbuff);
-			char_to_int_array(ctx->core.TitleID,settingbuff,0x8,BIG_ENDIAN,16);
+			printf("[+] Overriding original TitleID with '%s'\n",settingbuff);
+			char_to_int_array(ctx->core.TitleID,settingbuff,0x8,BE,16);
 		}
 		fseek(ctx->configfile.file.file,pos,SEEK_SET);
 		if(get_value(settingbuff,17,"OverrideTicketID",ctx->configfile.file.file) == FOUND){
-			printf("\n[+] Overriding original TicketID with '%s'\n",settingbuff);
-			char_to_int_array(ctx->core.TicketID,settingbuff,0x8,BIG_ENDIAN,16);
+			printf("[+] Overriding original TicketID with '%s'\n",settingbuff);
+			char_to_int_array(ctx->core.TicketID,settingbuff,0x8,BE,16);
 		}
 		fseek(ctx->configfile.file.file,pos,SEEK_SET);
 		if(get_value(settingbuff,5,"TicketVersion",ctx->configfile.file.file) == FOUND){
 			u16 ver = strtol(settingbuff, NULL, 10);
-			u16_to_u8(ctx->core.TicketVersion,ver,BIG_ENDIAN);
-			printf("\n[+] Manually Setting Title Version to v%d\n",ver);
+			u16_to_u8(ctx->core.TicketVersion,ver,BE);
+			printf("[+] Manually Setting Title Version to v%d\n",ver);
 		}
 		fseek(ctx->configfile.file.file,pos,SEEK_SET);
 		if(get_value(settingbuff,5,"TitleVersion",ctx->configfile.file.file) == FOUND){
 			u16 ver = strtol(settingbuff, NULL, 10);
-			u16_to_u8(ctx->core.TitleVersion,ver,BIG_ENDIAN);
-			printf("\n[+] Manually Setting Title Version to v%d\n",ver);
+			u16_to_u8(ctx->core.TitleVersion,ver,BE);
+			printf("[+] Manually Setting Title Version to v%d\n",ver);
 		}
 		fseek(ctx->configfile.file.file,pos,SEEK_SET);
-		ctx->meta_flag = get_boolean("GenerateMeta",ctx->configfile.file.file);
+		if(get_value(settingbuff,8,"SaveDataSize",ctx->configfile.file.file) == FOUND){
+			u32 savedatasize = strtol(settingbuff, NULL, 10)*1024;
+			u32_to_u8(ctx->core.save_data_size,savedatasize,LE);
+			printf("[+] Manually Setting Savedata Size to %d KB\n",savedatasize/1024);
+		}
 	}
 	else{
 		printf("[!] Could not locate 'BuildSettings' section in %s\n",ctx->configfile.argument);
-		return 1;
-	}
-	
-	if(ctx->core.Platform != CTR && ctx->meta_flag == TRUE){
-		printf("[!] Meta Region cannot be generated for Non-CTR titles\n");
 		return 1;
 	}
 	
@@ -487,23 +649,33 @@ int SetBuildSettings(CIA_CONTEXT *ctx)
 
 int SetTicketIssuer(CIA_CONTEXT *ctx)
 {
+#ifndef _DEBUG_KEY_BUILD_	
 	memset(ctx->core.TicketIssuer,0x0,0x40);
 	u8 old_issuer_len = strlen(ctx->keys.ticket.issuer);
 	u8 name_len = strlen(ctx->keys.ticket.name);
 	ctx->core.TicketIssuer[old_issuer_len] = 0x2D;
 	memcpy(ctx->core.TicketIssuer,ctx->keys.ticket.issuer,old_issuer_len);
 	memcpy((ctx->core.TicketIssuer+old_issuer_len+1),ctx->keys.ticket.name,name_len);
+#endif
+#ifdef _DEBUG_KEY_BUILD_
+	memcpy(ctx->core.TicketIssuer,xs9_Issuer,64);
+#endif
 	return 0;
 }
 
 int SetTitleMetaDataIssuer(CIA_CONTEXT *ctx)
 {
+#ifndef _DEBUG_KEY_BUILD_	
 	memset(ctx->core.TMDIssuer,0x0,0x40);
 	u8 old_issuer_len = strlen(ctx->keys.tmd.issuer);
 	u8 name_len = strlen(ctx->keys.tmd.name);
 	ctx->core.TMDIssuer[old_issuer_len] = 0x2D;
 	memcpy(ctx->core.TMDIssuer,ctx->keys.tmd.issuer,old_issuer_len);
 	memcpy((ctx->core.TMDIssuer+old_issuer_len+1),ctx->keys.tmd.name,name_len);
+#endif
+#ifdef _DEBUG_KEY_BUILD_
+	memcpy(ctx->core.TMDIssuer,cpA_Issuer,64);
+#endif
 	return 0;
 }
 
@@ -512,48 +684,57 @@ int GetContentInfo(CONTENT_INFO *ctx, int content_index, FILE *config_file)
 	memset(ctx,0x0,sizeof(CONTENT_INFO));
 	
 	char buffer[0x500];
-	u8 result;
 	char ContentName[15];
 	sprintf(ContentName,"Content%d",content_index);
+	char NextContent[15];
+	sprintf(NextContent,"Content%d",content_index+1);
 	
-	ctx->valid = TRUE;
+	u32 CurrentContentPos = 0;
+	u32 NextContentPos = -1;
+	
+	ctx->valid = True;
 	ctx->content_index = content_index;
 	
 	fseek(config_file,0x0,SEEK_SET);
 	if(key_search("ContentSettings",config_file) == FOUND){
-		if(key_search(ContentName,config_file) == FOUND){
-			long pos = ftell(config_file);
-			result = get_value(ctx->file_path,100,"FilePath",config_file);
-			if(result != 0){
+		if(key_search(NextContent,config_file) == FOUND){
+			NextContentPos = ftell(config_file);
+		}
+	}
+	
+	fseek(config_file,0x0,SEEK_SET);
+	if(key_search("ContentSettings",config_file) == FOUND){
+		if(key_search(ContentName,config_file) == FOUND){		
+			CurrentContentPos = ftell(config_file);
+			if(get_value(ctx->file_path,100,"FilePath",config_file) != 0 && ftell(config_file) < NextContentPos){
 				printf("[!] %s file location was not specified\n",ContentName);
 				return 1;
 			}
-			
-			fseek(config_file,pos,SEEK_SET);
-			if(get_value(buffer,10,"ContentID",config_file) == FOUND){
-				char_to_int_array(ctx->content_id,buffer,0x4,BIG_ENDIAN,16);
+			fseek(config_file,CurrentContentPos,SEEK_SET);
+			if(get_value(buffer,10,"ContentID",config_file) == FOUND && ftell(config_file) < NextContentPos){
+				char_to_int_array(ctx->content_id,buffer,0x4,BE,16);
 			}
 			else{
 				printf("[!] %s Content ID was not specified\n",ContentName);
 				return 1;
 			}
-			fseek(config_file,pos,SEEK_SET);
-			if(get_value(buffer,6,"ContentIndex",config_file) == FOUND){
+			fseek(config_file,CurrentContentPos,SEEK_SET);
+			if(get_value(buffer,6,"ContentIndex",config_file) == FOUND && ftell(config_file) < NextContentPos){
 				ctx->content_index = strtol(buffer, NULL, 10);
 			}
-			fseek(config_file,pos,SEEK_SET);
-			if(key_search("ContentFlags",config_file) == FOUND){
-				pos = ftell(config_file);
-				if(get_boolean("Encrypted",config_file) == TRUE){
-					ctx->encrypted = TRUE;
+			fseek(config_file,CurrentContentPos,SEEK_SET);
+			if(key_search("ContentFlags",config_file) == FOUND && ftell(config_file) < NextContentPos){
+				CurrentContentPos = ftell(config_file);
+				if(get_boolean("Encrypted",config_file) == True && ftell(config_file) < NextContentPos){
+					ctx->encrypted = True;
 					ctx->content_type += Encrypted;
 				}
-				fseek(config_file,pos,SEEK_SET);
-				if(get_boolean("Optional",config_file) == TRUE){
+				fseek(config_file,CurrentContentPos,SEEK_SET);
+				if(get_boolean("Optional",config_file) == True && ftell(config_file) < NextContentPos){
 					ctx->content_type += Optional;
 				}
-				fseek(config_file,pos,SEEK_SET);
-				if(get_boolean("Shared",config_file) == TRUE){
+				fseek(config_file,CurrentContentPos,SEEK_SET);
+				if(get_boolean("Shared",config_file) == True && ftell(config_file) < NextContentPos){
 					ctx->content_type += Shared;
 				}
 			}

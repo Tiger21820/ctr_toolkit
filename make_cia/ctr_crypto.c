@@ -148,14 +148,33 @@ void ctr_rsa_free(ctr_rsa_context* ctx)
 	rsa_free(&ctx->rsa);
 }
 
-int ctr_rsa_sign_hash(const u8 hash[0x20], u8 signature[0x100], RSA_2048_KEY *key)
+int ctr_rsa2048_sha256_sign(const u8 hash[0x20], u8 signature[0x100], const u8 modulus[0x100], const u8 priv_exp[0x100])
 {
+	RSA_2048_KEY key;
 	ctr_rsa_context ctx;
-	u8 result = 0;
-	ctr_rsa_init(&ctx,key,RSAKEY_PRIV);
-	result = ctr_rsa_sha256_sign(&ctx.rsa,hash,signature);
+	memcpy(key.d,priv_exp,0x100);
+	memcpy(key.n,modulus,0x100);
+	ctr_rsa_init(&ctx,&key,RSAKEY_PUB);
+	u32 result = rsa_sha256_sign(&ctx.rsa,hash,signature);
 	ctr_rsa_free(&ctx);
+	
+	if (result == 0)
+		return 0;
+	else
+		return 1;
+}
 
+int ctr_rsa2048_sha256_verify(const u8 hash[0x20], u8 signature[0x100], const u8 modulus[0x100])
+{
+	RSA_2048_KEY key;
+	ctr_rsa_context ctx;
+	u8 exponent[3] = {0x01,0x00,0x01};
+	memcpy(key.e,exponent,3);
+	memcpy(key.n,modulus,0x100);
+	ctr_rsa_init(&ctx,&key,RSAKEY_PUB);
+	u32 result = rsa_pkcs1_verify(&ctx.rsa, RSA_PUBLIC, SIG_RSA_SHA256, 0x20, hash, (u8*)signature);
+	ctr_rsa_free(&ctx);
+	
 	if (result == 0)
 		return 0;
 	else
@@ -165,7 +184,7 @@ int ctr_rsa_sign_hash(const u8 hash[0x20], u8 signature[0x100], RSA_2048_KEY *ke
 /**
 *  Made from rsa.c, especially crafted for generating signatures for SHA-256 hashes when only D and N are present
 **/
-int ctr_rsa_sha256_sign( rsa_context *ctx,const unsigned char *hash,unsigned char *sig )
+int rsa_sha256_sign( rsa_context *ctx,const unsigned char *hash,unsigned char *sig )
 {
     int nb_pad, olen, ret;
     unsigned char *p = sig;

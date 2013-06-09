@@ -1,24 +1,5 @@
 #define TMP_BUFFER_SIZE 1000
 
-//Title Type
-#define TYPE_CTR 0x40
-#define TYPE_DATA 0x8
-
-//Define Sig Types
-#define RSA_4096_SHA1 0x00000100
-#define RSA_2048_SHA1 0x01000100
-#define ECC_SHA1 0x02000100
-#define RSA_4096_SHA256 0x03000100
-#define RSA_2048_SHA256 0x04000100
-#define ECC_SHA256 0x05000100
-
-//Define PubK Types
-#define RSA_4096_PUBK 0x0
-#define RSA_2048_PUBK 0x1
-#define ECC_PUBK 0x2
-
-#define ERR_UNRECOGNISED_SIG 2
-
 typedef struct
 {
 	u8 *data;
@@ -54,17 +35,23 @@ CERT_DATA_STRUCT;
 
 void InitialiseSettings(CIA_CONTEXT *ctx);
 int GetSettings(CIA_CONTEXT *ctx);
+int GetSettings_NCSD(CIA_CONTEXT *ctx);
 
 int LoadAESKeys(CIA_CONTEXT *ctx);
+#ifndef _DEBUG_KEY_BUILD_	
 int LoadRSAKeys(CIA_CONTEXT *ctx);
 int LoadRSAKeyFile(RSA_2048_KEY *ctx, FILE *file);
+#endif
 void PrintRSAKeyData(RSA_2048_KEY *ctx);
 
+#ifndef _DEBUG_KEY_BUILD_	
 int ImportCertificates(CIA_CONTEXT *ctx);
 int ImportCertificateFile(CERT_BUFF *buff, char *cert_lable, FILE *config_file);
+#endif
 
 
 int GetCoreInfo(CIA_CONTEXT *ctx);
+int GetCoreInfo_NCSD(CIA_CONTEXT *ctx);
 int SetBuildSettings(CIA_CONTEXT *ctx);
 
 int SetTicketIssuer(CIA_CONTEXT *ctx);
