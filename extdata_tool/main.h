@@ -23,6 +23,8 @@ typedef struct
 	u8 info;
 	u8 extract;
 	u8 titledb_read;
+	//TitleDB options
+	u8 listdb;
 	
 	//Input
 	u8 *input_extdata;

@@ -30,10 +30,15 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "types.h"
 #include "utils.h"
+#include "ctx.h"
 
 #define IO_FAIL 1
 
 #define FALSE 0
 #define TRUE 1
 
-#define INVALID -1
+typedef enum
+{
+	Invalid = -1,
+	Valid = 0
+}Validity;

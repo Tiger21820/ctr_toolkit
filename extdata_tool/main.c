@@ -23,7 +23,7 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 
 //Version
 #define MAJOR 0
-#define MINOR 98
+#define MINOR 99
 
 void app_title(void);
 void help(char *app_name);
@@ -67,6 +67,9 @@ int main(int argc, char *argv[])
 		}
 		else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0){
 			ctx.verbose = TRUE;
+		}
+		else if (strcmp(argv[i], "--listdb") == 0){
+			ctx.listdb = TRUE;
 		}
 		//else{
 		//	printf("[!] Unknown Option: %s\n", argv[i]);
@@ -164,9 +167,12 @@ int main(int argc, char *argv[])
 	}
 	
 	if(ctx.titledb_read == TRUE){
-		if(process_title_database(extdataimg,(header.DIFF.active_table_offset + partition_primary.IVFC.level_4_fs_relative_offset + partition_primary.DPFS.ivfc_offset)) != 0){
+		int db_mode = Normal;
+		if(ctx.listdb == TRUE)
+			db_mode = ByTID;
+		if(ProcessTitleDB(extdataimg, db_mode,(header.DIFF.active_table_offset + partition_primary.IVFC.level_4_fs_relative_offset + partition_primary.DPFS.ivfc_offset)) != 0){
 			if(partition_primary.DIFI.flags[0] == 0x0){
-				if(process_title_database(extdataimg,(header.DIFF.active_table_offset + partition_primary.DPFS.ivfc_length + partition_secondary.DPFS.ivfc_offset + partition_primary.IVFC.level_4_fs_relative_offset)) != 0){
+				if(ProcessTitleDB(extdataimg, db_mode,(header.DIFF.active_table_offset + partition_primary.DPFS.ivfc_length + partition_secondary.DPFS.ivfc_offset + partition_primary.IVFC.level_4_fs_relative_offset)) != 0){
 					printf("[!] %s is Corrupt, or is not a Title Database ExtData Image\n",ctx.input_extdata);
 				}
 			}
@@ -176,6 +182,7 @@ int main(int argc, char *argv[])
 	}
 	
 	fclose(extdataimg);
+	printf("[*] Done\n");
 	return 0;
 }
 
@@ -194,5 +201,6 @@ void help(char *app_name)
 	printf(" -h, --help                                   Print this help.\n");
 	printf(" -i, --info                                   Display ExtData Info.\n");
 	printf(" -x, --extract          Out-Dir               Extract Data from ExtData Image.\n");
-	printf(" -t, --titledb                                Display Title Database Info\n");
+	printf(" -t, --titledb                                List and Give info on Titles in Database\n");
+	printf("     --listdb                                 List Titles in Database, must be used with above command\n");
 }
