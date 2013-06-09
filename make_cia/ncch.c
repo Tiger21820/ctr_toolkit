@@ -173,11 +173,12 @@ int GetCXIStruct(NCCH_STRUCT *ctx, u32 offset, FILE *ncch)
 		ctx->encrypted = True;
 	
 	ctx->version = u8_to_u16(header.version,LE);
-	if(ctx->is_cfa != True)
+	if(ctx->is_cfa != True){
 		ctx->exheader_offset = 0x200;
-	ctx->exheader_size = u8_to_u32(header.extended_header_size,LE) + 0x400;
-	ctx->exefs_offset = (u8_to_u32(header.exefs_offset,LE)*media_unit);
-	ctx->exefs_size = (u8_to_u32(header.exefs_size,LE)*media_unit);
+		ctx->exheader_size = u8_to_u32(header.extended_header_size,LE) + 0x400;
+		ctx->exefs_offset = (u8_to_u32(header.exefs_offset,LE)*media_unit);
+		ctx->exefs_size = (u8_to_u32(header.exefs_size,LE)*media_unit);
+	}
 	ctx->romfs_offset = (u8_to_u32(header.romfs_offset,LE)*media_unit);
 	ctx->romfs_size = (u8_to_u32(header.romfs_size,LE)*media_unit);
 	return 0;
