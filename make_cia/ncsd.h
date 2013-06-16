@@ -8,6 +8,34 @@ typedef enum
 	dev_external_SDK
 } ROM_TYPES;
 
+typedef enum
+{
+	FW_1_0_0 = 1024,
+	FW_1_1_0 = 1045,
+	FW_2_0_0 = 2049,
+	FW_2_1_0 = 2069,
+	FW_2_2_0 = 2088,
+	FW_3_0_0 = 3088,
+	FW_4_0_0 = 4098,
+	FW_4_1_0 = 4113,
+	FW_4_2_0 = 4130,
+	FW_4_3_0 = 4145,
+	FW_4_4_0 = 4163,
+	FW_4_5_0 = 4176,
+	FW_5_0_0 = 5120,
+	FW_5_1_0 = 5136
+} CVER_FW_VER;
+
+typedef enum
+{
+	EUR_ROM = 0x00017102,
+	JPN_ROM = 0x00017202,
+	USA_ROM = 0x00017302,
+	CHN_ROM = 0x00017402,
+	KOR_ROM = 0x00017502,
+	TWN_ROM = 0x00017602
+} CVER_UID_REGION;
+
 typedef struct
 {
 	u8 offset[4];
@@ -36,8 +64,8 @@ typedef struct
 	u8 reserved_0[0xf8];
 	u8 rom_size_used[8];
 	u8 reserved_1[0x18];
-	u8 nver_title_id[8];
-	u8 nver_title_version[2];
+	u8 cver_title_id[8];
+	u8 cver_title_version[2];
 	u8 reserved_2[0xcd6];
 	u8 partition_0_title_id[8];
 	u8 reserved_3[8];
@@ -91,3 +119,4 @@ int VerifyNCSD(CIA_CONTEXT *ctx, FILE *ncsd);
 int VerifyNCCHSection(CIA_CONTEXT *ctx, u8 ncch_key[0x10], u32 offset, FILE *ncch);
 
 void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card_info, DEV_CARD_INFO_HEADER *dev_card_info);
+void GetMin3DSFW(char *FW_STRING, CARD_INFO_HEADER *card_info);

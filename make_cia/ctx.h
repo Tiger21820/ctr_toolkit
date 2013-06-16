@@ -75,6 +75,16 @@ typedef enum
 	right_AccessTitle = 5
 } ticket_item_rights;
 
+typedef enum
+{
+	_unknown = 0,
+	CXI,
+	CFA_Manual,
+	CFA_DLPChild,
+	CFA_Update
+} ncch_types;
+
+
 //Key Types
 typedef enum
 {
@@ -179,6 +189,7 @@ typedef struct
 {
 	int active;
 	int sig_valid;
+	u8 content_type;
 	u8 fs_type;
 	u8 crypto_type;
 	u32 offset;

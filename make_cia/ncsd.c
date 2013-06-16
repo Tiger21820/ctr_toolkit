@@ -46,9 +46,38 @@ int GetNCSDData(CIA_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd)
 		ncsd_struct->partition_data[i].title_id = u8_to_u64(header.partition_id_table[i],LITTLE_ENDIAN);
 		ncsd_struct->partition_data[i].fs_type = header.partitions_fs_type[i];
 		ncsd_struct->partition_data[i].crypto_type = header.partitions_crypto_type[i];
+		
+		u8 magic[4];
+		fpos_t pos = ncsd_struct->partition_data[i].offset + 0x100;
+		fsetpos(ncsd,&pos);
+		fread(&magic,4,1,ncsd);
+		if(u8_to_u32(magic,BE) == NCCH_MAGIC){
+			u8 flags[8];
+			u8 flag_bool[8];
+			fpos_t pos = ncsd_struct->partition_data[i].offset + 0x188;
+			fsetpos(ncsd,&pos);
+			fread(&flags,8,1,ncsd);
+			resolve_flag(flags[5],flag_bool);
+			if(flag_bool[1] == False && flag_bool[0] == True){
+				if(flag_bool[2] == False && flag_bool[3] == True)
+					ncsd_struct->partition_data[i].content_type = CFA_Manual;
+				else if(flag_bool[2] == True && flag_bool[3] == True)
+					ncsd_struct->partition_data[i].content_type = CFA_DLPChild;
+				else if(flag_bool[2] == True && flag_bool[3] == False)
+					ncsd_struct->partition_data[i].content_type = CFA_Update;
+				else
+					ncsd_struct->partition_data[i].content_type = _unknown;
+			}
+			else if(flag_bool[1] == True)
+				ncsd_struct->partition_data[i].content_type = CXI;
+			else
+				ncsd_struct->partition_data[i].content_type = _unknown;
+		}
+		else
+			ncsd_struct->partition_data[i].content_type = _unknown;
 	}
 	
-	if(u8_to_u64(card_info.nver_title_id,LITTLE_ENDIAN) == 0){
+	if(u8_to_u64(card_info.cver_title_id,LITTLE_ENDIAN) == 0){
 		u8 stock_title_key[0x10] = {0x6E, 0xC7, 0x5F, 0xB2, 0xE2, 0xB4, 0x87, 0x46, 0x1E, 0xDD, 0xCB, 0xB8, 0x97, 0x11, 0x92, 0xBA};
 		if(memcmp(dev_card_info.TitleKey,stock_title_key,0x10) == 0)
 			ncsd_struct->type = dev_external_SDK;
@@ -197,8 +226,13 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 	switch(ctx->type){
 		case retail : 
 			printf("Target:                 Retail/Production\n"); 
-			printf("NVer Title ID:          %016llx\n",u8_to_u64(card_info->nver_title_id,LITTLE_ENDIAN));
-			printf("NVer Title Ver:         v%d\n",u8_to_u16(card_info->nver_title_version,LITTLE_ENDIAN));
+			printf("CVer Title ID:          %016llx\n",u8_to_u64(card_info->cver_title_id,LITTLE_ENDIAN));
+			printf("CVer Title Ver:         v%d\n",u8_to_u16(card_info->cver_title_version,LITTLE_ENDIAN));
+			char *FW_STRING = malloc(10);
+			memset(FW_STRING,0,10);
+			GetMin3DSFW(FW_STRING,card_info);
+			printf("Min 3DS Firm:           %s\n",FW_STRING);
+			free(FW_STRING);
 			break;
 		case dev_internal_SDK :
 			printf("Target:                 Debug/Development\n");
@@ -212,10 +246,10 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			break;
 	}
 	if(ctx->rom_size >= GB){
-		printf("NCSD ROM Cart Size:     %d GB",ctx->rom_size/GB); printf(" (%d Gbit)\n",(ctx->rom_size/GB)*8);
+		printf("ROM Cart Size:          %d GB",ctx->rom_size/GB); printf(" (%d Gbit)\n",(ctx->rom_size/GB)*8);
 	}
 	else{
-		printf("NCSD ROM Cart Size:     %d MB",ctx->rom_size/MB); 
+		printf("ROM Cart Size:          %d MB",ctx->rom_size/MB); 
 		u32 tmp = (ctx->rom_size/MB)*8;
 		if(tmp >= 1024)
 			printf(" (%d Gbit)\n",tmp/1024);
@@ -223,10 +257,10 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			printf(" (%d Mbit)\n",tmp);
 	}
 	if(ctx->used_rom_size >= MB){
-		printf("NCSD File Size:         %d MB",ctx->used_rom_size/MB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
+		printf("ROM Used Size:          %d MB",ctx->used_rom_size/MB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
 	}
 	else if(ctx->used_rom_size >= KB){
-		printf("NCSD File Size:         %d KB",ctx->used_rom_size/KB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
+		printf("ROM Used Size:          %d KB",ctx->used_rom_size/KB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
 	}
 	printf("NCSD Title ID:          %016llx\n",u8_to_u64(header->title_id,LITTLE_ENDIAN));
 	memdump(stdout,"ExHeader Hash:          ",header->exheader_hash,0x20);
@@ -238,6 +272,15 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 		if(ctx->partition_data[i].active == True){
 			printf("Partition %d\n",i);
 			printf(" Title ID:              %016llx\n",ctx->partition_data[i].title_id);
+			printf(" Content Type:          ");
+			switch(ctx->partition_data[i].content_type){
+				case _unknown : printf("Unknown\n"); break;
+				case CXI : printf("Application\n"); break;
+				case CFA_Manual : printf("Electronic Manual\n"); break;
+				case CFA_DLPChild : printf("Download Play Child\n"); break;
+				case CFA_Update : printf("Software Update Partition\n"); break;
+			}
+			
 			printf(" FS Type:               %x\n",ctx->partition_data[i].fs_type);
 			printf(" Crypto Type:           %x\n",ctx->partition_data[i].crypto_type);
 			printf(" Offset:                0x%x\n",ctx->partition_data[i].offset);
@@ -245,4 +288,31 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			printf("\n");
 		}
 	}
+}
+
+void GetMin3DSFW(char *FW_STRING, CARD_INFO_HEADER *card_info)
+{
+	u8 MAJOR = 0;
+	u8 MINOR = 0;
+	u8 BUILD = 0;
+	char REGION_CHAR = 'X';
+
+	u16 CVer_ver = u8_to_u16(card_info->cver_title_version,LE);
+	u32 CVer_UID = u8_to_u32(card_info->cver_title_id,LE);
+		
+	switch(CVer_UID){
+		case EUR_ROM : REGION_CHAR = 'E'; break;
+		case JPN_ROM : REGION_CHAR = 'J'; break;
+		case USA_ROM : REGION_CHAR = 'U'; break;
+		case CHN_ROM : REGION_CHAR = 'C'; break;
+		case KOR_ROM : REGION_CHAR = 'K'; break;
+		case TWN_ROM : REGION_CHAR = 'T'; break;
+	}
+	
+	
+	switch(CVer_ver){
+		case 3088 : MAJOR = 3; MINOR = 0; BUILD = 0; break;
+		default : MAJOR = CVer_ver/1024; MINOR = (CVer_ver - 1024*(CVer_ver/1024))/0x10; break;//This tends to work 98% of the time, use above for manual overides
+	}
+	sprintf(FW_STRING,"%d.%d.%d-X%c",MAJOR,MINOR,BUILD,REGION_CHAR);
 }
