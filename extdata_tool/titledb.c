@@ -373,39 +373,6 @@ u64 ReturnTitleID(TITLE_CONTEXT *TitleData)
 	return u8_to_u64(TitleData->index.Title_ID,LITTLE_ENDIAN);
 }
 
-/**
-void SortTitleIDs(u64 *TitleID_DB, u32 ContentCount)
-{
-	if(ContentCount <= 1)
-		return;
-	u64 *temp0 = malloc(sizeof(u64)*ContentCount);
-	u64 *temp1 = malloc(sizeof(u64)*ContentCount);
-	memset(temp0,0x0,(sizeof(u64)*ContentCount));
-	memset(temp1,0x0,(sizeof(u64)*ContentCount));
-	memcpy(temp0,TitleID_DB,(sizeof(u64)*ContentCount));
-	//Sort Start
-	u8 OddNumberBool = FALSE;
-	u32 StageCount = ContentCount/2;
-	if((StageCount*2) != ContentCount)
-		OddNumberBool = TRUE;
-	printf("There are %d stages\n",StageCount);
-	while(StageCount > 1){
-		for(u32 j = 0; j < StageCount; j += (ContentCount/StageCount)){
-			for(u32 k = 0; k < (ContentCount/StageCount); k++){
-				
-			}
-		}
-		memcpy(temp0,temp1,(sizeof(u64)*ContentCount));
-		memset(temp1,0x0,(sizeof(u64)*ContentCount));
-		StageCount = (StageCount/2);
-	}
-	//Sort End
-	//memcpy(TitleID_DB,temp0,(sizeof(u64)*ContentCount));
-	free(temp0);
-	free(temp1);
-	return;
-}
-**/
 
 void ListTitleIDs(u64 *TitleID_DB, u32 ContentCount)
 {
