@@ -201,6 +201,6 @@ void help(char *app_name)
 	printf(" -h, --help                                   Print this help.\n");
 	printf(" -i, --info                                   Display ExtData Info.\n");
 	printf(" -x, --extract          Out-Dir               Extract Data from ExtData Image.\n");
-	printf(" -t, --titledb                                List and Give info on Titles in Database\n");
-	printf("     --listdb                                 List Titles in Database, must be used with above command\n");
+	printf(" -t, --titledb                                Display Data in Title Database\n");
+	printf("     --listdb                                 Generate a Title List from TDB(use with -t command)\n");
 }

@@ -201,6 +201,10 @@ typedef struct
 	TITLE_DATABASE database;
 }DATABASE_CONTEXT;
 
+void merge(u64 *left, int l_len, u64 *right, int r_len, u64 *out);
+void recur(u64 *buf, u64 *tmp, int len);
+void merge_sort(u64 *buf, int len);
+
 int ProcessTitleDB(FILE *tdb, int Mode, u64 offset);
 
 int GetDB_Header(DATABASE_CONTEXT *ctx);
