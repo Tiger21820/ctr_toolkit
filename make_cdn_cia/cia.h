@@ -122,6 +122,8 @@ typedef struct
 	u16 content_count;
 	TMD_CONTENT_CHUNK_STRUCT *content_struct;
 	FILE **content;
+	
+	u16 *title_index;
 } __attribute__((__packed__)) 
 TMD_CONTEXT;
 
