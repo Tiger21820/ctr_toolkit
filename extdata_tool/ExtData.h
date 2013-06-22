@@ -16,27 +16,44 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 **/
+#ifndef _EXTDATA_H_
+#define _EXTDATA_H_
 #include "types.h"
 
-#define DIFF_MAGIC_0 0x46464944
-#define DIFF_MAGIC_1 0x30000
-#define DISA_MAGIC 0x41534944
-#define DIFF_CORRUPT 10
+typedef enum
+{
+	DIFF_MAGIC_0 = 0x46464944,
+	DIFF_MAGIC_1 = 0x30000,
+	DISA_MAGIC = 0x41534944,
+	DIFF_CORRUPT = 10
+} DIFF_data;
 
-#define DIFI_MAGIC_0 0x49464944
-#define DIFI_MAGIC_1 0x10000
-#define DIFI_CORRUPT 11
+typedef enum
+{
+	DIFI_MAGIC_0 = 0x49464944,
+	DIFI_MAGIC_1 = 0x10000,
+	DIFI_CORRUPT = 11
+} DIFI_data;
 
-#define IVFC_MAGIC_0 0x43465649
-#define IVFC_MAGIC_1 0x20000
-#define IVFC_CORRUPT 12
+typedef enum
+{
+	IVFC_MAGIC_0 = 0x43465649,
+	IVFC_MAGIC_1 = 0x20000,
+	IVFC_CORRUPT = 12,
+} IVFC_data;
 
-#define DPFS_MAGIC_0 0x53465044
-#define DPFS_MAGIC_1 0x10000
-#define DPFS_CORRUPT 13
+typedef enum
+{
+	DPFS_MAGIC_0 = 0x53465044,
+	DPFS_MAGIC_1 = 0x10000,
+	DPFS_CORRUPT = 13,
+} DPFS_data;
 
-#define PRIMARY 0
-#define SECONDARY 1
+typedef enum
+{
+	PRIMARY,
+	SECONDARY
+} partition;
 
 typedef struct
 {
@@ -127,6 +144,7 @@ typedef struct
 } __attribute__((__packed__)) 
 PARTITION_STRUCT;
 
+
 void print_extdata_header(EXTDATA_HEADER_CONTEXT header);
 void print_partition_info(PARTITION_STRUCT partition);
 void print_DIFI(PARTITION_STRUCT partition);
@@ -135,5 +153,7 @@ void print_DPFS(PARTITION_STRUCT partition);
 
 PARTITION_STRUCT get_extdata_partition_header(u64 offset, u32 active_table_offset, FILE *extdataimg);
 
-int get_extdata_single_blob(u64 offset, u64 size, FILE *extdataimg);
-int get_extdata_duo_blob(u64 offset, u64 size, int suffix, FILE *extdataimg);
+int get_extdata_single_blob(char *filepath, u64 offset, u64 size, FILE *extdataimg);
+int get_extdata_duo_blob(char *filepath, u64 offset, u64 size, int suffix, FILE *extdataimg);
+
+#endif

@@ -227,7 +227,7 @@ void CollectTitleIDs(u64 *TitleID_DB, u32 ContentCount, DATABASE_CONTEXT *ctx);
 u64 ReturnTitleID(TITLE_CONTEXT *TitleData);
 void SortTitleIDs(u64 *TitleID_DB, u32 ContentCount);
 void ListTitleIDs(u64 *TitleID_DB, u32 ContentCount);
-
+void print_product_code(u8 *product_code);
 /**
 DB_HEADER_CONTEXT process_db_header(FILE *tdb, u64 offset);
 void print_db_header(TEMPTDB_STRUCT tdb_header, u8 database_type);

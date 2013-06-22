@@ -16,21 +16,3 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 **/
-typedef struct
-{
-	//Option Flags
-	u8 verbose;
-	u8 info;
-	u8 extract;
-	u8 titledb_read;
-	//TitleDB options
-	u8 listdb;
-	
-	//Input
-	u8 *input_extdata;
-	
-	//Output Dir
-	u8 *output_dir;
-	int output_dir_len;
-} __attribute__((__packed__))
-INPUT_CONTEXT;

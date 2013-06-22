@@ -1,23 +1,6 @@
-/**
-Copyright 2013 3DSGuy
-
-This file is part of make_cdn_cia.
-
-make_cdn_cia is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-make_cdn_cia is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
-**/
 #include "lib.h"
 
+//MISC
 void char_to_int_array(unsigned char destination[], char source[], int size, int endianness, int base)
 {	
 	char tmp[size][2];
@@ -32,6 +15,8 @@ void char_to_int_array(unsigned char destination[], char source[], int size, int
 		tmp[i][2] = '\0';
         byte_array[i] = (unsigned char)strtol(tmp[i], NULL, base);
     }
+	endian_memcpy(destination,byte_array,size,endianness);
+	/**
 	for (int i = 0; i < size; i++){
         switch (endianness){
         	case(BIG_ENDIAN):
@@ -42,65 +27,13 @@ void char_to_int_array(unsigned char destination[], char source[], int size, int
         	break;
         }
     }
+	**/
 	free(byte_array);
 }
 
-void print_product_code(u8 *product_code)
-{
-	for(int i = 0; i < 0x10; i++){
-		if(product_code[i] == '\0')
-			return;
-		putchar(product_code[i]);
-	}
-}
-
-int makedir(const char* dir)
-{
-#ifdef _WIN32
-	return _mkdir(dir);
-#else
-	return mkdir(dir, 0777);
-#endif
-}
-
-char *getcwdir(char *buffer,int maxlen)
-{
-#ifdef _WIN32
-	return _getcwd(buffer,maxlen);
-#else
-	return getcwd(buffer,maxlen);
-#endif
-}
-
-void resolve_flag(unsigned char flag, unsigned char *flag_bool)
-{
-	unsigned char bit_mask[8] = {0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
-	for(int i = 0; i < 8; i++){
-		if (flag >= bit_mask[i]){
-			flag_bool[7-i] = TRUE;
-			flag -= bit_mask[i];
-		}
-		else
-			flag_bool[7-i] = FALSE;
-	}
-}
-
-void resolve_flag_u16(u16 flag, unsigned char *flag_bool)
-{
-	u16 bit_mask[16] = {0x8000,0x4000,0x2000,0x1000,0x800,0x400,0x200,0x100,0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
-	for(int i = 0; i < 16; i++){
-		if (flag >= bit_mask[i]){
-			flag_bool[15-i] = TRUE;
-			flag -= bit_mask[i];
-		}
-		else
-			flag_bool[15-i] = FALSE;
-	}
-}
-
-void endian_strcpy(unsigned char destination[], unsigned char source[], int size, int endianness)
+void endian_memcpy(u8 *destination, u8 *source, u32 size, int endianness)
 { 
-    for (int i = 0; i < size; i++){
+    for (u32 i = 0; i < size; i++){
         switch (endianness){
             case(BIG_ENDIAN):
                 destination[i] = source[i];
@@ -132,6 +65,139 @@ u32 align_value(u32 value, u32 alignment)
 	return (value + (alignment - tmp));
 }
 
+void resolve_flag(unsigned char flag, unsigned char *flag_bool)
+{
+	unsigned char bit_mask[8] = {0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
+	for(int i = 0; i < 8; i++){
+		if (flag >= bit_mask[i]){
+			flag_bool[7-i] = True;
+			flag -= bit_mask[i];
+		}
+		else
+			flag_bool[7-i] = False;
+	}
+}
+
+void resolve_flag_u16(u16 flag, unsigned char *flag_bool)
+{
+	u16 bit_mask[16] = {0x8000,0x4000,0x2000,0x1000,0x800,0x400,0x200,0x100,0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
+	for(int i = 0; i < 16; i++){
+		if (flag >= bit_mask[i]){
+			flag_bool[15-i] = TRUE;
+			flag -= bit_mask[i];
+		}
+	else
+		flag_bool[15-i] = FALSE;
+	}
+}
+
+//IO Related
+void WriteBuffer(void *buffer, u64 size, u64 offset, FILE *output)
+{
+	fseek(output,offset,SEEK_SET);
+	fwrite(buffer,size,1,output);
+} 
+
+int dotruncate(char *fn, __int64 len)
+{
+	HANDLE fh;
+ 
+	LARGE_INTEGER fp;
+	fp.QuadPart = len;
+ 
+	fh = CreateFile(fn, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (fh == INVALID_HANDLE_VALUE) {
+		printf("[!] Invalid File handle\n");
+		//oops(fn);
+		return 1;
+	}
+ 
+	if (SetFilePointerEx(fh, fp, NULL, FILE_BEGIN) == 0 ||
+	    SetEndOfFile(fh) == 0) {
+		printf("[!] truncate failed\n");
+		//oops(fn);
+		CloseHandle(fh);
+		return 1;
+	}
+ 
+	CloseHandle(fh);
+	return 0;
+}
+
+__int64 nsamples(char* filename)
+{
+  int fh;
+  __int64 n;
+
+  /* Open file */
+  fh = _open( filename, 0 );
+
+  /* Find end of file */
+  n = _lseeki64(fh, 0, SEEK_END);
+
+  /* Close file */
+  _close(fh);
+
+ return (n / sizeof(short))*2;
+}
+
+/**
+u64 GetFileSize(FILE *file)
+{
+	u64 size = 0;
+#ifdef _WIN32
+	fseek(file, 0L, SEEK_END);
+	size = ftell(file);
+	fseek(file, 0L, SEEK_SET);
+#else
+	fseeko(file, 0L, SEEK_END);
+	size = ftello(file);
+	fseeko(file, 0L, SEEK_SET);
+#endif
+	return size;
+}
+**/
+
+int makedir(const char* dir)
+{
+#ifdef _WIN32
+	return _mkdir(dir);
+#else
+	return mkdir(dir, 0777);
+#endif
+}
+
+char *getcwdir(char *buffer,int maxlen)
+{
+#ifdef _WIN32
+return _getcwd(buffer,maxlen);
+#else
+return getcwd(buffer,maxlen);
+#endif
+}
+
+//Data Size conversion
+u16 u8_to_u16(u8 *value, u8 endianness)
+{
+	u16 new_value;
+	switch(endianness){
+		case(BIG_ENDIAN): new_value =  (value[1]<<0) | (value[0]<<8); break;
+		case(LITTLE_ENDIAN): new_value = (value[0]<<0) | (value[1]<<8); break;
+	}
+	return new_value;
+}
+
+u32 u8_to_u32(u8 *value, u8 endianness)
+{
+	u32 new_value;
+	switch(endianness){
+		case(BIG_ENDIAN): new_value = (value[3]<<0) | (value[2]<<8) | (value[1]<<16) | (value[0]<<24); break;
+		case(LITTLE_ENDIAN): new_value = (value[0]<<0) | (value[1]<<8) | (value[2]<<16) | (value[3]<<24); break;
+	}
+	return new_value;
+}
+
+
 u64 u8_to_u64(u8 *value, u8 endianness)
 {
 	u64 u64_return = 0;
@@ -160,54 +226,6 @@ u64 u8_to_u64(u8 *value, u8 endianness)
 			//return (value[0]<<0) | (value[1]<<8) | (value[2]<<16) | (value[3]<<24) | (value[4]<<32) | (value[5]<<40) | (value[6]<<48) | (value[7]<<56);
 	}
 	return u64_return;
-}
-
-void memdump(FILE* fout, const char* prefix, const u8* data, u32 size)
-{
-	u32 i;
-	u32 prefixlen = strlen(prefix);
-	u32 offs = 0;
-	u32 line = 0;
-	while(size)
-	{
-		u32 max = 32;
-
-		if (max > size)
-			max = size;
-
-		if (line==0)
-			fprintf(fout, "%s", prefix);
-		else
-			fprintf(fout, "%*s", prefixlen, "");
-
-
-		for(i=0; i<max; i++)
-			fprintf(fout, "%02X", data[offs+i]);
-		fprintf(fout, "\n");
-		line++;
-		size -= max;
-		offs += max;
-	}
-}
-
-u32 u8_to_u32(u8 *value, u8 endianness)
-{
-	u32 new_value;
-	switch(endianness){
-		case(BIG_ENDIAN): new_value = (value[3]<<0) | (value[2]<<8) | (value[1]<<16) | (value[0]<<24); break;
-		case(LITTLE_ENDIAN): new_value = (value[0]<<0) | (value[1]<<8) | (value[2]<<16) | (value[3]<<24); break;
-	}
-	return new_value;
-}
-
-u16 u8_to_u16(u8 *value, u8 endianness)
-{
-	u16 new_value;
-	switch(endianness){
-		case(BIG_ENDIAN): new_value =  (value[1]<<0) | (value[0]<<8); break;
-		case(LITTLE_ENDIAN): new_value = (value[0]<<0) | (value[1]<<8); break;
-	}
-	return new_value;
 }
 
 int u16_to_u8(u8 *out_value, u16 in_value, u8 endianness)
@@ -270,3 +288,34 @@ int u64_to_u8(u8 *out_value, u64 in_value, u8 endianness)
 	}
 	return 0;
 }
+
+//Copied from ctrtool
+void memdump(FILE* fout, const char* prefix, const u8* data, u32 size)
+{
+	u32 i;
+	u32 prefixlen = strlen(prefix);
+	u32 offs = 0;
+	u32 line = 0;
+	while(size)
+	{
+		u32 max = 32;
+
+		if (max > size)
+			max = size;
+
+		if (line==0)
+			fprintf(fout, "%s", prefix);
+		else
+			fprintf(fout, "%*s", prefixlen, "");
+
+
+		for(i=0; i<max; i++)
+			fprintf(fout, "%02X", data[offs+i]);
+		fprintf(fout, "\n");
+		line++;
+		size -= max;
+		offs += max;
+	}
+}
+
+

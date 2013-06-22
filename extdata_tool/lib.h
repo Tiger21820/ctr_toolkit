@@ -23,6 +23,9 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef _WIN32
 	#include <io.h>
+	#include <direct.h>
+	#include <windows.h>
+	#include <wchar.h>
 #else
 	#include <sys/stat.h>
 	#include <unistd.h>
@@ -30,15 +33,32 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "types.h"
 #include "utils.h"
+#include "ExtData.h"
 #include "ctx.h"
+
 
 #define IO_FAIL 1
 
-#define FALSE 0
-#define TRUE 1
+#ifndef _VARIABLES_
+#define _VARIABLES_
+typedef enum
+{
+	False = 0,
+	True = 1
+} _bool;
+
+typedef enum
+{
+	BIG_ENDIAN = 0,
+	LITTLE_ENDIAN = 1,
+	BE = 0,
+	LE = 1
+} endian_types;
+
 
 typedef enum
 {
 	Invalid = -1,
 	Valid = 0
 }Validity;
+#endif

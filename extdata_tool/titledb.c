@@ -53,7 +53,7 @@ int ProcessTitleDB(FILE *tdb, int Mode, u64 offset)
 	if(Mode == ByTID)
 		ListDatabase(ctx);
 	
-	if(ctx->database.BufferAllocated == TRUE){
+	if(ctx->database.BufferAllocated == True){
 		free(ctx->database.TitleData);
 	}
 	return 0;
@@ -120,7 +120,7 @@ int GetEntry_Header(DATABASE_CONTEXT *ctx)
 
 void PopulateDatabase(DATABASE_CONTEXT *ctx)
 {
-	ctx->database.BufferAllocated = TRUE;
+	ctx->database.BufferAllocated = True;
 	ctx->database.TitleData = malloc(sizeof(TITLE_CONTEXT)*ctx->database.MaxCount);
 	memset(ctx->database.TitleData,0x0,(sizeof(TITLE_CONTEXT)*ctx->database.MaxCount));
 	
@@ -129,7 +129,7 @@ void PopulateDatabase(DATABASE_CONTEXT *ctx)
 		TITLE_INDEX_ENTRY_STRUCT temp;
 		fseek(ctx->db,entry_offset,SEEK_SET);
 		fread(&temp,sizeof(TITLE_INDEX_ENTRY_STRUCT),1,ctx->db);
-		if(u8_to_u32(temp.Active_Entry,LITTLE_ENDIAN) == TRUE){
+		if(u8_to_u32(temp.Active_Entry,LITTLE_ENDIAN) == True){
 			u32 Index = u8_to_u32(temp.Index,LITTLE_ENDIAN);
 			u32 info_offset = (ctx->core_data.EntryTableOffset + (u8_to_u32(temp.Title_Info_Offset,LITTLE_ENDIAN) * u8_to_u32(temp.Title_Info_Offset_Media,LITTLE_ENDIAN)));
 			StoreTitleEntry(&ctx->database.TitleData[Index],entry_offset,info_offset,ctx->db);
@@ -180,7 +180,7 @@ void PrintTitleData(TITLE_CONTEXT *TitleData)
 
 int EntryUsed(TITLE_CONTEXT *TitleData)
 {
-	if(u8_to_u32(TitleData->index.Active_Entry,LITTLE_ENDIAN) != TRUE)
+	if(u8_to_u32(TitleData->index.Active_Entry,LITTLE_ENDIAN) != True)
 		return Invalid;
 	return Valid;
 }
@@ -254,7 +254,7 @@ void GetTitleType(u8 TitleID[8])
 		goto print_info;
 	}
 	
-	if(FlagBool[15] == TRUE && FlagBool[14] == FALSE)
+	if(FlagBool[15] == True && FlagBool[14] == False)
 		goto twl_content;
 	else
 		goto ctr_content;
@@ -265,51 +265,51 @@ void GetTitleType(u8 TitleID[8])
 
 ctr_content:
 	TitlePlatform_FLAG = CTR;
-	if(FlagBool[14] == FALSE && FlagBool[15] == FALSE && FlagBool[4] == TRUE)
+	if(FlagBool[14] == False && FlagBool[15] == False && FlagBool[4] == True)
 		TitleType_FLAG = System;
 	else
 		TitleType_FLAG = Regular;
 	
-	if(FlagBool[0] == TRUE)
+	if(FlagBool[0] == True)
 		TitleAppType_FLAG = DLP_Child;
 	
-	if(FlagBool[1] == TRUE)
+	if(FlagBool[1] == True)
 		TitleAppType_FLAG = Demo;
 		
-	if(FlagBool[1] == TRUE && FlagBool[2] == TRUE && FlagBool[3] == TRUE)
+	if(FlagBool[1] == True && FlagBool[2] == True && FlagBool[3] == True)
 		TitleAppType_FLAG = Addon_Content;
 	
-	if(FlagBool[2] == TRUE && FlagBool[3] == TRUE && FlagBool[7] == TRUE)
+	if(FlagBool[2] == True && FlagBool[3] == True && FlagBool[7] == True)
 		TitleAppType_FLAG = DLC_Content;
 	
 	if(TitleType_FLAG == System){
-		if(FlagBool[5] == TRUE)
+		if(FlagBool[5] == True)
 			TitleAppType_FLAG = Applet;
-		if(FlagBool[5] == TRUE && FlagBool[8] == TRUE)
+		if(FlagBool[5] == True && FlagBool[8] == True)
 			TitleAppType_FLAG = Module;
-		if(FlagBool[5] == TRUE && FlagBool[8] == TRUE && FlagBool[3] == TRUE)
+		if(FlagBool[5] == True && FlagBool[8] == True && FlagBool[3] == True)
 			TitleAppType_FLAG = Firmware;
 	}
 	
-	if(FlagBool[0] == TRUE && FlagBool[1] == TRUE && FlagBool[2] == FALSE && FlagBool[3] == TRUE)
+	if(FlagBool[0] == True && FlagBool[1] == True && FlagBool[2] == False && FlagBool[3] == True)
 		TitleAppType_FLAG = Data_Archive;
 		
 	goto print_info;
 	
 twl_content:
 	TitlePlatform_FLAG = TWL;
-	if(FlagBool[0] == TRUE)
+	if(FlagBool[0] == True)
 		TitleType_FLAG = System;
 	else
 		TitleType_FLAG = Regular;
 	
-	if(FlagBool[2] == TRUE)
+	if(FlagBool[2] == True)
 		TitleAppType_FLAG = Application;
 	
-	if(FlagBool[1] == TRUE && FlagBool[2] == TRUE)
+	if(FlagBool[1] == True && FlagBool[2] == True)
 		TitleAppType_FLAG = Applet;
 		
-	if(FlagBool[1] == TRUE && FlagBool[2] == TRUE && FlagBool[3] == TRUE)
+	if(FlagBool[1] == True && FlagBool[2] == True && FlagBool[3] == True)
 		TitleAppType_FLAG = Data_Archive;
 		
 	goto print_info;
@@ -361,7 +361,7 @@ void CollectTitleIDs(u64 *TitleID_DB, u32 ContentCount, DATABASE_CONTEXT *ctx)
 {
 	u32 TID_Count = 0;
 	for(u32 i = 0, TID_Count = 0; i < ctx->database.MaxCount, TID_Count < ContentCount; i++){
-		if(EntryUsed(&ctx->database.TitleData[i]) == Valid && EntryValid(&ctx->database.TitleData[i]) == Valid){
+		if(EntryUsed(&ctx->database.TitleData[i]) == Valid /*&& EntryValid(&ctx->database.TitleData[i]) == Valid*/){
 			TitleID_DB[TID_Count] = ReturnTitleID(&ctx->database.TitleData[i]);
 			TID_Count++;
 		}
@@ -418,4 +418,13 @@ void merge_sort(u64 *buf, int len)
 	recur(buf, tmp, len);
  
 	free(tmp);
+}
+
+void print_product_code(u8 *product_code)
+{
+	for(int i = 0; i < 0x10; i++){
+		if(product_code[i] == '\0')
+			return;
+		putchar(product_code[i]);
+	}
 }

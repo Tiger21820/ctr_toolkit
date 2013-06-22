@@ -165,8 +165,9 @@ PARTITION_STRUCT get_extdata_partition_header(u64 offset, u32 active_table_offse
 	return partition;
 }
 
-int get_extdata_single_blob(u64 offset, u64 size, FILE *extdataimg)
+int get_extdata_single_blob(char *filepath, u64 offset, u64 size, FILE *extdataimg)
 {
+	/**
 	u8 MAGIC_tmp[10];
 	memset(&MAGIC_tmp,0x0,0x10);
 
@@ -176,26 +177,29 @@ int get_extdata_single_blob(u64 offset, u64 size, FILE *extdataimg)
 	
 	//Preparing Output Data file
 	u8 out_name[8];
+	//char hi[10] = {"tmp"};
 	sprintf(out_name, "%s.bin",MAGIC_tmp);
-	
+	//sprintf(out_name, "%s.bin",hi);
+	**/
 	//Storing Output Data
 	u8 *tmp = malloc(size);
 	fseek(extdataimg,offset,SEEK_SET);
 	fread(tmp,size,1,extdataimg);
-	FILE *output_data = fopen(out_name,"wb");
+	FILE *output_data = fopen(filepath,"wb");
 	if(output_data == NULL){
-		printf("[!] Could Not create %s\n",out_name);
+		printf("[!] Could Not create %s\n",filepath);
 		free(tmp);
 		return IO_FAIL;
 	}
-	printf("[+] Writing %s ...\n",out_name);
+	printf("[+] Writing %s ...\n",filepath);
 	fwrite(tmp,size,1,output_data);
 	fclose(output_data);
 	free(tmp);
+	printf("Hi\n");
 	return 0;
 }
 
-int get_extdata_duo_blob(u64 offset, u64 size, int suffix, FILE *extdataimg)
+int get_extdata_duo_blob(char *filepath, u64 offset, u64 size, int suffix, FILE *extdataimg)
 {
 	//Reading MAGIC of output data
 	u8 MAGIC_tmp[10];
@@ -223,9 +227,11 @@ int get_extdata_duo_blob(u64 offset, u64 size, int suffix, FILE *extdataimg)
 	}
 		
 	//Preparing Output Data file
-	u8 out_name[20];
-	sprintf(out_name, "%s_%d.bin",MAGIC_tmp,suffix);
-		
+	u8 out_name[100];
+	sprintf(out_name, "%d_%s",suffix,filepath);
+	
+	
+	
 	//Storing Output Data
 	u8 *tmp = malloc(size);
 	fseek(extdataimg,offset,SEEK_SET);
