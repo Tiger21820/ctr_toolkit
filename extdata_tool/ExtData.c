@@ -24,11 +24,11 @@ void print_extdata_header(EXTDATA_HEADER_CONTEXT header)
 	printf("\n[+] ExtData Image Header\n");
 	printf("Magic:                      DIFF\n");
 	printf("AES MAC:                    "); u8_hex_print_be(header.AES_MAC, 0x10); putchar('\n');
-	printf("Primary Partition Offset:   0x%x\n",header.DIFF.primary_partition_offset);
-	printf("Secondary Partition Offset: 0x%x\n",header.DIFF.secondary_partition_offset);
-	printf("Partition Table Length:     0x%x\n",header.DIFF.partition_table_length);
-	printf("Active Table(FB) Offset:    0x%x\n",header.DIFF.active_table_offset);
-	printf("File Base Size:             0x%x\n",header.DIFF.file_base_size);
+	printf("Primary Partition Offset:   0x%llx\n",header.DIFF.primary_partition_offset);
+	printf("Secondary Partition Offset: 0x%llx\n",header.DIFF.secondary_partition_offset);
+	printf("Partition Table Length:     0x%llx\n",header.DIFF.partition_table_length);
+	printf("Active Table(FB) Offset:    0x%llx\n",header.DIFF.active_table_offset);
+	printf("File Base Size:             0x%llx\n",header.DIFF.file_base_size);
 	printf("Active Table Hash:          "); u8_hex_print_be(header.DIFF.active_table_hash, 0x20); putchar('\n');
 }
 
@@ -52,13 +52,13 @@ void print_DIFI(PARTITION_STRUCT partition)
 	u8_hex_print_be(partition.DIFI_HASH, 0x20);
 	putchar('\n');
 	printf("IVFC Blob:\n");
-	printf(" > Relative Offset:         0x%x\n",partition.DIFI.ivfc_blob_offset/** + partition.DIFI_offset**/);
-	printf(" > Adjusted Offset:         0x%x\n",partition.DIFI.ivfc_blob_offset + partition.DIFI_offset);
-	printf(" > Size:                    0x%x\n",partition.DIFI.ivfc_blob_size);
+	printf(" > Relative Offset:         0x%llx\n",partition.DIFI.ivfc_blob_offset/** + partition.DIFI_offset**/);
+	printf(" > Adjusted Offset:         0x%llx\n",partition.DIFI.ivfc_blob_offset + partition.DIFI_offset);
+	printf(" > Size:                    0x%llx\n",partition.DIFI.ivfc_blob_size);
 	printf("DPFS Blob:\n");
-	printf(" > Relative Offset:         0x%x\n",partition.DIFI.dpfs_blob_offset/** + partition.DIFI_offset**/);
-	printf(" > Adjusted Offset:         0x%x\n",partition.DIFI.dpfs_blob_offset + partition.DIFI_offset);
-	printf(" > Size:                    0x%x\n",partition.DIFI.dpfs_blob_size);
+	printf(" > Relative Offset:         0x%llx\n",partition.DIFI.dpfs_blob_offset/** + partition.DIFI_offset**/);
+	printf(" > Adjusted Offset:         0x%llx\n",partition.DIFI.dpfs_blob_offset + partition.DIFI_offset);
+	printf(" > Size:                    0x%llx\n",partition.DIFI.dpfs_blob_size);
 	//printf("Hash Blob:\n");
 	//printf(" > Offset:                  0x%x\n",partition.DIFI.hash_offset + partition.DIFI_offset);
 	//printf(" > Size:                    0x%x\n",partition.DIFI.hash_size);
@@ -67,42 +67,42 @@ void print_DIFI(PARTITION_STRUCT partition)
 	putchar('\n');
 	if(partition.DIFI.flags[0] == 0x1){
 		printf(" > Partition Type:          DATA\n");
-		printf(" > Data Partition Offset:   0x%x\n",partition.DIFI.data_partition_offset);
+		printf(" > Data Partition Offset:   0x%llx\n",partition.DIFI.data_partition_offset);
 		printf("   (+ DPFS 'IVFC' Offset)\n");
 	}
 	else if(partition.DIFI.flags[0] == 0x0 && partition.DIFI.flags[1] == 0x1){
 		printf(" > Partition Type:          FS\n");
-		printf(" > FS Partition Offset:     0x%x\n",partition.IVFC.level_4_fs_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_offset);
+		printf(" > FS Partition Offset:     0x%llx\n",partition.IVFC.level_4_fs_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_offset);
 	}
 	else if(partition.DIFI.flags[0] == 0x0 && partition.DIFI.flags[1] == 0x0){
 		printf(" > Partition Type:          FS\n");
-		printf(" > FS Partition Offset:     0x%x\n",partition.IVFC.level_4_fs_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_length + partition.DPFS.ivfc_offset);
+		printf(" > FS Partition Offset:     0x%llx\n",partition.IVFC.level_4_fs_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_length + partition.DPFS.ivfc_offset);
 	}
 }
 
 void print_IVFC(PARTITION_STRUCT partition)
 {
 	//printf("Header:                     IVFC\n");
-	printf("Master Hash Size:           0x%x\n",partition.IVFC.master_hash_size);
+	printf("Master Hash Size:           0x%llx\n",partition.IVFC.master_hash_size);
 	printf("Level 1\n");
-	printf(" > Relative Offset:         0x%x\n",partition.IVFC.level_1_relative_offset);
+	printf(" > Relative Offset:         0x%llx\n",partition.IVFC.level_1_relative_offset);
 	//printf(" > Adjusted Offset:         0x%x\n",partition.IVFC.level_1_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_offset);
-	printf(" > Hash Data Size:          0x%x\n",partition.IVFC.level_1_hashdata_size);
+	printf(" > Hash Data Size:          0x%llx\n",partition.IVFC.level_1_hashdata_size);
 	printf(" > Block Size:              0x%x\n",1 << partition.IVFC.level_1_block_size);
 	printf("Level 2\n");
-	printf(" > Relative Offset:         0x%x\n",partition.IVFC.level_2_relative_offset);
+	printf(" > Relative Offset:         0x%llx\n",partition.IVFC.level_2_relative_offset);
 	//printf(" > Adjusted Offset:         0x%x\n",partition.IVFC.level_2_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_offset);
-	printf(" > Hash Data Size:          0x%x\n",partition.IVFC.level_2_hashdata_size);
+	printf(" > Hash Data Size:          0x%llx\n",partition.IVFC.level_2_hashdata_size);
 	printf(" > Block Size:              0x%x\n",1 << partition.IVFC.level_2_block_size);
 	printf("Level 3\n");
-	printf(" > Relative Offset:         0x%x\n",partition.IVFC.level_3_relative_offset);
+	printf(" > Relative Offset:         0x%llx\n",partition.IVFC.level_3_relative_offset);
 	//printf(" > Adjusted Offset:         0x%x\n",partition.IVFC.level_3_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_offset);
-	printf(" > Hash Data Size:          0x%x\n",partition.IVFC.level_3_hashdata_size);
+	printf(" > Hash Data Size:          0x%llx\n",partition.IVFC.level_3_hashdata_size);
 	printf(" > Block Size:              0x%x\n",1 << partition.IVFC.level_3_block_size);
 	printf("Level 4 (File System)\n");
-	printf(" > FS Relative Offset:      0x%x\n",partition.IVFC.level_4_fs_relative_offset);
+	printf(" > FS Relative Offset:      0x%llx\n",partition.IVFC.level_4_fs_relative_offset);
 	//printf(" > Adjusted Offset:         0x%x\n",partition.IVFC.level_4_fs_relative_offset + partition.active_table_offset + partition.DPFS.ivfc_offset);
-	printf(" > FS Size:                 0x%x\n",partition.IVFC.level_4_fs_size);
+	printf(" > FS Size:                 0x%llx\n",partition.IVFC.level_4_fs_size);
 	printf(" > FS Block Size:           0x%x\n",1 << partition.IVFC.level_4_fs_block_size);
 }
 
@@ -110,19 +110,19 @@ void print_DPFS(PARTITION_STRUCT partition)
 {
 	//printf("Header:                     DPFS\n");
 	printf("Table 1\n");
-	printf(" > Relative Offset:         0x%x\n",partition.DPFS.table_1_offset);
+	printf(" > Relative Offset:         0x%llx\n",partition.DPFS.table_1_offset);
 	//printf(" > Adjusted Offset:         0x%x\n",partition.DPFS.table_1_offset + partition.active_table_offset);
-	printf(" > Length:                  0x%x\n",partition.DPFS.table_1_length);
+	printf(" > Length:                  0x%llx\n",partition.DPFS.table_1_length);
 	printf(" > Block Size:              0x%x\n",1 << partition.DPFS.table_1_block_size);
 	printf("Table 2\n");
-	printf(" > Relative Offset:         0x%x\n",partition.DPFS.table_2_offset);
+	printf(" > Relative Offset:         0x%llx\n",partition.DPFS.table_2_offset);
 	//printf(" > Adjusted Offset:         0x%x\n",partition.DPFS.table_2_offset + partition.active_table_offset);
-	printf(" > Length:                  0x%x\n",partition.DPFS.table_2_length);
+	printf(" > Length:                  0x%llx\n",partition.DPFS.table_2_length);
 	printf(" > Block Size:              0x%x\n",1 << partition.DPFS.table_2_block_size);
 	printf("IVFC\n");
-	printf(" > Relative Offset:         0x%x\n",partition.DPFS.ivfc_offset);
+	printf(" > Relative Offset:         0x%llx\n",partition.DPFS.ivfc_offset);
 	//printf(" > Adjusted Offset:         0x%x\n",partition.DPFS.ivfc_offset + partition.active_table_offset);
-	printf(" > Length:                  0x%x\n",partition.DPFS.ivfc_length);
+	printf(" > Length:                  0x%llx\n",partition.DPFS.ivfc_length);
 	printf(" > Block Size:              0x%x\n",1 << partition.DPFS.ivfc_block_size);
 }
 
@@ -207,27 +207,9 @@ int get_extdata_duo_blob(char *filepath, u64 offset, u64 size, int suffix, FILE 
 	
 	fseek(extdataimg,offset,SEEK_SET);
 	fread(MAGIC_tmp,4,1,extdataimg);
-	
-	//Correcting Output names for files embedded in .db extdata images
-	if(strcmp(MAGIC_tmp,"TEMP") == 0){
-		memset(&MAGIC_tmp,0x0,0x10);
-		fread(MAGIC_tmp,4,1,extdataimg);
-		if(strcmp(MAGIC_tmp,"IDB") == 0)
-			strcpy(MAGIC_tmp,"TEMPIDB");
-		else if(strcmp(MAGIC_tmp,"TDB") == 0)
-			strcpy(MAGIC_tmp,"TEMPTDB");
-	}
-	else if(strcmp(MAGIC_tmp,"NAND") == 0){
-		memset(&MAGIC_tmp,0x0,0x10);
-		fread(MAGIC_tmp,4,1,extdataimg);
-		if(strcmp(MAGIC_tmp,"IDB") == 0)
-			strcpy(MAGIC_tmp,"NANDIDB");
-		else if(strcmp(MAGIC_tmp,"TDB") == 0)
-			strcpy(MAGIC_tmp,"NANDTDB");
-	}
 		
 	//Preparing Output Data file
-	u8 out_name[100];
+	char out_name[100];
 	sprintf(out_name, "%d_%s",suffix,filepath);
 	
 	

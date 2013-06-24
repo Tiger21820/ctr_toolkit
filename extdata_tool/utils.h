@@ -8,8 +8,8 @@ void resolve_flag(unsigned char flag, unsigned char *flag_bool);
 void resolve_flag_u16(u16 flag, unsigned char *flag_bool);
 //IO Related
 void WriteBuffer(void *buffer, u64 size, u64 offset, FILE *output);
-int dotruncate(char *fn, __int64 len);
-__int64 nsamples(char* filename);
+int dotruncate(char *fn, u64 len);
+u64 nsamples(char* filename);
 //u64 GetFileSize(FILE *file)
 int makedir(const char* dir);
 char *getcwdir(char *buffer,int maxlen);

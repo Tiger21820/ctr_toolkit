@@ -27,7 +27,6 @@ const char TitleAppTypeString[9][20] = {"Application","DLP Child","Demo","Add-on
 
 int ProcessTitleDB(FILE *tdb, int Mode, u64 offset)
 {
-
 	//TODO Establish a proper DB context
 	DATABASE_CONTEXT *ctx = malloc(sizeof(DATABASE_CONTEXT));
 	memset(ctx,0x0,sizeof(DATABASE_CONTEXT));
@@ -47,12 +46,12 @@ int ProcessTitleDB(FILE *tdb, int Mode, u64 offset)
 	}
 
 	PopulateDatabase(ctx);
-	
+
 	if(Mode == Normal)
 		PrintDatabase(ctx);
 	if(Mode == ByTID)
 		ListDatabase(ctx);
-	
+
 	if(ctx->database.BufferAllocated == True){
 		free(ctx->database.TitleData);
 	}
@@ -338,13 +337,12 @@ print_info:
 void ListDatabase(DATABASE_CONTEXT *ctx)
 {
 	u32 ContentCount = GetValidEntryCount(ctx);
-	u64 *TitleID_DB = malloc(sizeof(u64)*ContentCount);
-	memset(TitleID_DB,0x0,(sizeof(u64)*ContentCount));
+	u64 len = sizeof(u64) * ContentCount;
+	u64 TitleID_DB[len];
+	memset(&TitleID_DB,0x0,(sizeof(u64)*ContentCount));
 	CollectTitleIDs(TitleID_DB,ContentCount,ctx);
 	merge_sort(TitleID_DB,ContentCount);
-	//SortTitleIDs(TitleID_DB,ContentCount);
 	ListTitleIDs(TitleID_DB,ContentCount);
-	free(TitleID_DB);
 }
 
 u32 GetValidEntryCount(DATABASE_CONTEXT *ctx)
@@ -359,8 +357,7 @@ u32 GetValidEntryCount(DATABASE_CONTEXT *ctx)
 
 void CollectTitleIDs(u64 *TitleID_DB, u32 ContentCount, DATABASE_CONTEXT *ctx)
 {
-	u32 TID_Count = 0;
-	for(u32 i = 0, TID_Count = 0; i < ctx->database.MaxCount, TID_Count < ContentCount; i++){
+	for(u32 i = 0, TID_Count = 0; i < ctx->database.MaxCount || TID_Count < ContentCount; i++){
 		if(EntryUsed(&ctx->database.TitleData[i]) == Valid /*&& EntryValid(&ctx->database.TitleData[i]) == Valid*/){
 			TitleID_DB[TID_Count] = ReturnTitleID(&ctx->database.TitleData[i]);
 			TID_Count++;
@@ -380,6 +377,15 @@ void ListTitleIDs(u64 *TitleID_DB, u32 ContentCount)
 	printf("[+] Title List:\n");
 	for(u32 i = 0; i < ContentCount; i++){
 		printf(" %016llx\n",TitleID_DB[i]);
+	}
+}
+
+void print_product_code(u8 *product_code)
+{
+	for(int i = 0; i < 0x10; i++){
+		if(product_code[i] == '\0')
+			return;
+		putchar(product_code[i]);
 	}
 }
 
@@ -411,20 +417,8 @@ void recur(u64 *buf, u64 *tmp, int len)
 /* preparation work before recursion */
 void merge_sort(u64 *buf, int len)
 {
-	/* call alloc, copy and free only once */
 	u64 *tmp = malloc(sizeof(u64) * len);
-	memcpy(tmp, buf, sizeof(u64) * len);
- 
+	memcpy(tmp, buf,(sizeof(u64) * len));
 	recur(buf, tmp, len);
- 
 	free(tmp);
-}
-
-void print_product_code(u8 *product_code)
-{
-	for(int i = 0; i < 0x10; i++){
-		if(product_code[i] == '\0')
-			return;
-		putchar(product_code[i]);
-	}
 }

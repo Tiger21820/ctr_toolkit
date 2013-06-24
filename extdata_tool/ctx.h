@@ -1,3 +1,10 @@
+//Global Sizes
+typedef enum
+{
+	IO_PATH_LEN = 0x400,
+	EXTDATA_FS_MAX_PATH_LEN = 0x100
+} global_sizes;
+
 //Variable Structs
 
 typedef struct
@@ -48,7 +55,8 @@ typedef struct
 	
 	
 	//Stored Data
-	char cwd[0x400];
+	char cwd[IO_PATH_LEN];
+	u8 platform;
 	u8 mode;
 	char *extdataimg_path;
 	FILE *extdataimg;

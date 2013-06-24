@@ -83,11 +83,11 @@ void resolve_flag_u16(u16 flag, unsigned char *flag_bool)
 	u16 bit_mask[16] = {0x8000,0x4000,0x2000,0x1000,0x800,0x400,0x200,0x100,0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
 	for(int i = 0; i < 16; i++){
 		if (flag >= bit_mask[i]){
-			flag_bool[15-i] = TRUE;
+			flag_bool[15-i] = True;
 			flag -= bit_mask[i];
 		}
 	else
-		flag_bool[15-i] = FALSE;
+		flag_bool[15-i] = False;
 	}
 }
 
@@ -97,8 +97,8 @@ void WriteBuffer(void *buffer, u64 size, u64 offset, FILE *output)
 	fseek(output,offset,SEEK_SET);
 	fwrite(buffer,size,1,output);
 } 
-
-int dotruncate(char *fn, __int64 len)
+#ifdef _WIN32
+int dotruncate(char *fn, u64 len)
 {
 	HANDLE fh;
  
@@ -124,10 +124,10 @@ int dotruncate(char *fn, __int64 len)
 	return 0;
 }
 
-__int64 nsamples(char* filename)
+u64 nsamples(char* filename)
 {
   int fh;
-  __int64 n;
+  u64 n;
 
   /* Open file */
   fh = _open( filename, 0 );
@@ -140,7 +140,7 @@ __int64 nsamples(char* filename)
 
  return (n / sizeof(short))*2;
 }
-
+#endif
 /**
 u64 GetFileSize(FILE *file)
 {

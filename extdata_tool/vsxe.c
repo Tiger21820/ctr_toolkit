@@ -27,17 +27,11 @@ int ProcessExtData_FS(INPUT_CONTEXT *ctx)
 
 void SetupOutputFS(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 {
-	//chdir(ctx->output);
-	memcpy(vsxe->folders[1].filename,ctx->output,16);
-	char *path = malloc(1000);
+	char *path = malloc(IO_PATH_LEN);
 	for(int i = 1; i < vsxe->foldercount; i++){
-		memset(path,0,1000);
-		sprintf(path,"%s",ctx->cwd);
-#ifdef _WIN32
-		Return_Dir_Path(vsxe,i,path,WIN_32);
-#else
-		Return_Dir_Path(vsxe,i,path,UNIX);
-#endif
+		memset(path,0,IO_PATH_LEN);
+		sprintf(path,"%s",ctx->output);
+		Return_Dir_Path(vsxe,i,path,ctx->platform);
 		//printf("%s\n",path);
 		chdir(path);
 		for(int j = 2; j < vsxe->foldercount; j++){
@@ -51,32 +45,14 @@ void SetupOutputFS(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 
 int WriteExtDataFiles(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 {
-	chdir(ctx->cwd);
-	char *inpath = malloc(1000);
-	char *outpath = malloc(1000);
+	char *inpath = malloc(IO_PATH_LEN);
+	char *outpath = malloc(IO_PATH_LEN);
 	for(u32 i = 2; i < vsxe->filecount; i++){
-		memset(inpath,0x0,1000);
-		memset(outpath,0x0,1000);
-		u8 inputlen = strlen(ctx->input);
-		char director = 0;
-		int platform = 0;
-#ifdef _WIN32
-		platform = WIN_32;
-		director = 0x5C;
-#else
-		platform = UNIX;
-		director = 0x2F;
-#endif
-		if(ctx->input[inputlen - 1] != director) 
-			sprintf(inpath,"%s%c%08x.dec",ctx->input,director,i);
-		else
-			sprintf(inpath,"%s%08x.dec",ctx->input,i);
-
-		if(ctx->output[inputlen - 1] != director) 
-			sprintf(outpath,"%s%c",ctx->output,director);
-		else
-			sprintf(outpath,"%s",ctx->output);
-		Return_ExtData_Mount_Path(vsxe,i,outpath,platform);
+		memset(inpath,0x0,IO_PATH_LEN);
+		memset(outpath,0x0,IO_PATH_LEN);
+		sprintf(inpath,"%s%c%08x.dec",ctx->input,ctx->platform,i);
+		sprintf(outpath,"%s%c",ctx->output,ctx->platform);
+		Return_ExtData_Mount_Path(vsxe,i,outpath,ctx->platform);
 		
 		FILE *extdata = fopen(inpath,"rb");
 		if(extdata == NULL){
@@ -91,9 +67,7 @@ int WriteExtDataFiles(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 			free(outpath);
 			printf("[!] Failed to create %s\n",outpath);
 			return 1;
-		}
-		
-		//printf("File: '%s' is extracted to '%s'\n",inpath,outpath);
+		}		
 		if(ExportExdataImagetoFile(extdata,outfile) != 0){
 			printf("Failed to Extract '%s' to '%s'\n",inpath,outpath);
 			return 1;
@@ -101,6 +75,8 @@ int WriteExtDataFiles(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 		fclose(extdata);
 		fclose(outfile);
 	}
+	free(inpath);
+	free(outpath);
 	return 0;
 }
 
@@ -198,9 +174,9 @@ void PrintVSXE_FS_INFO(VSXE_CONTEXT *ctx)
 	printf(" ExtData Mount Path:   %s\n",ctx->header.last_used_file); 
 	
 	printf("ExtData Image Mount locations\n");
-	char *path = malloc(0x100);
+	char *path = malloc(EXTDATA_FS_MAX_PATH_LEN);
 	for(u32 i = 2; i < ctx->filecount; i++){
-		memset(path,0x0,0x100);
+		memset(path,0x0,EXTDATA_FS_MAX_PATH_LEN);
 		sprintf(path,"/");
 		Return_ExtData_Mount_Path(ctx,i,path,UNIX);
 		printf(" Image %08x is mounted at: '%s'\n",i,path);
@@ -212,7 +188,7 @@ void Return_Dir_Path(VSXE_CONTEXT *ctx, u32 file_id, char *path, u8 platform)
 {
 	u8 path_part_count = 0;
 	u8 present_dir = u8_to_u32(ctx->folders[file_id].parent_folder_index,LE);
-	while(present_dir > 0){
+	while(present_dir > 1){
 		path_part_count++;
 		present_dir = u8_to_u32(ctx->folders[present_dir].parent_folder_index,LE);
 	}
@@ -223,17 +199,12 @@ void Return_Dir_Path(VSXE_CONTEXT *ctx, u32 file_id, char *path, u8 platform)
 		present_dir = u8_to_u32(ctx->folders[present_dir].parent_folder_index,LE);
 		folderlocation[i] = present_dir;
 	}
-	
-	u8 divider = 0;
-	switch(platform){
-		case(WIN_32): divider = 0x5C; break;
-		default: divider = 0x2F; break;
-	}
-	sprintf(path,"%s%c",path,divider);
+
+	sprintf(path,"%s%c",path,platform);
 	
 	for(int i = 1; i < path_part_count + 1; i++){
 		u8 folder_id = folderlocation[i];	
-		sprintf(path,"%s%s%c",path,ctx->folders[folder_id].filename,divider);
+		sprintf(path,"%s%s%c",path,ctx->folders[folder_id].filename,platform);
 	}
 	sprintf(path,"%s%s",path,ctx->folders[file_id].filename);	
 }
@@ -255,12 +226,7 @@ void Return_ExtData_Mount_Path(VSXE_CONTEXT *ctx, u32 file_id, char *path, u8 pl
 	}
 	for(int i = 1; i < path_part_count + 1; i++){
 		u8 folder_id = folderlocation[i];
-		u8 divider = 0;
-		switch(platform){
-			case(WIN_32): divider = 0x5C; break;
-			default: divider = 0x2F; break;
-		}
-		sprintf(path,"%s%s%c",path,ctx->folders[folder_id].filename,divider);
+		sprintf(path,"%s%s%c",path,ctx->folders[folder_id].filename,platform);
 	}
 	sprintf(path,"%s%s",path,ctx->files[file_id].filename);
 	

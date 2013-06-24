@@ -26,7 +26,7 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 typedef enum
 {
 	MAJOR = 1,
-	MINOR = 2
+	MINOR = 5
 } app_version;
 
 void app_title(void);
@@ -62,37 +62,36 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	ctx.extdataimg_path = malloc(100);
+	if (getcwdir(ctx.cwd,IO_PATH_LEN) == NULL){
+		printf("[!] Could not store Current Working Directory\n");
+		return IO_FAIL;
+	}
+	
+#ifdef _WIN32
+	ctx.platform = WIN_32;
+#else
+	ctx.platform = UNIX;
+#endif
+
+	ctx.extdataimg_path = malloc(IO_PATH_LEN);
+	ctx.input = malloc(IO_PATH_LEN);
+	memset(ctx.extdataimg_path,0,IO_PATH_LEN);
+	memset(ctx.input,0,IO_PATH_LEN);
 	switch(ctx.mode){
 		case Image:
-			ctx.input = argv[argc - 1];
-			ctx.extdataimg_path = ctx.input;
+			memcpy(ctx.input,argv[argc - 1],strlen(argv[argc - 1]));
+			memcpy(ctx.extdataimg_path,argv[argc - 1],strlen(argv[argc - 1]));
 			break;
 		case Directory:
-			ctx.input = argv[argc - 1];
-			u8 inputlen = strlen(ctx.input);
-#ifdef _WIN32
-			if(ctx.input[inputlen - 1] != 0x5C) 
-				sprintf(ctx.extdataimg_path,"%s%c00000001.dec",ctx.input,0x5C);
-			else
-				sprintf(ctx.extdataimg_path,"%s00000001.dec",ctx.input);
-#else
-			if(ctx.input[inputlen - 1] != 0x2F) 
-				sprintf(ctx.extdataimg_path,"%s%c00000001.dec",ctx.input,0x2F);
-			else
-				sprintf(ctx.extdataimg_path,"%s00000001.dec",ctx.input);
-#endif
+			chdir(argv[argc - 1]);
+			getcwdir(ctx.input,IO_PATH_LEN);
+			chdir(ctx.cwd);
+			sprintf(ctx.extdataimg_path,"%s%c00000001.dec",ctx.input,ctx.platform);
 			break;
 	}
 	ctx.extdataimg = fopen(ctx.extdataimg_path,"rb");
 	if(ctx.extdataimg == NULL){
 		printf("[!] Failed to Open '%s'\n",ctx.extdataimg_path);
-		return IO_FAIL;
-	}
-	
-	
-	if (getcwdir(ctx.cwd, 0x400) == NULL){
-		printf("[!] Could not store Current Working Directory\n");
 		return IO_FAIL;
 	}
 	
@@ -106,7 +105,16 @@ int main(int argc, char *argv[])
 		}
 		else if (strcmp(argv[i], "--extract") == 0 || strcmp(argv[i], "-x") == 0){
 			ctx.extract = True;
-			ctx.output = argv[i+1];
+			ctx.output = malloc(IO_PATH_LEN);
+			memset(ctx.output,0,IO_PATH_LEN); 
+			switch(ctx.mode){
+				case(Image): memcpy(ctx.output,argv[i+1],strlen(argv[i+1])); break;
+				case(Directory):
+					chdir(argv[i+1]);
+					getcwdir(ctx.output,IO_PATH_LEN);
+					chdir(ctx.cwd);
+					break;
+			}
 		}
 		else if (strcmp(argv[i], "--viewFS") == 0 || strcmp(argv[i], "-v") == 0){
 			ctx.fs_info = True;
@@ -114,7 +122,7 @@ int main(int argc, char *argv[])
 		else if (strcmp(argv[i], "--titledb") == 0 || strcmp(argv[i], "-t") == 0){
 			ctx.titledb_read = True;
 		}
-		else if (strcmp(argv[i], "--listdb") == 0){
+		else if (strcmp(argv[i], "--listdb") == 0 || strcmp(argv[i], "-l") == 0){
 			ctx.listdb = True;
 		}
 	}
@@ -219,10 +227,12 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	//free(ctx.input);
-	//if(ctx.extract == True)
-	//	free(ctx.output);
-	//free(ctx.extdataimg_path);
+	
+	free(ctx.input);
+	if(ctx.extract == True){
+		free(ctx.output);
+	}
+	free(ctx.extdataimg_path);
 	fclose(ctx.extdataimg);
 	printf("[*] Done\n");
 	return 0;

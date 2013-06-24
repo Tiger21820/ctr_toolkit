@@ -6,15 +6,15 @@ typedef enum
 
 typedef enum
 {
-	WIN_32 = 1,
-	UNIX
+	WIN_32 = 0x5C,
+	UNIX = 0x2F
 } platform;
 
 //Structs
 typedef struct
 {
 	u8 parent_folder_index[4];
-    u8 filename[0x10];
+    char filename[0x10];
     u8 unk0[4];
     u8 unk1[4]; 
     u8 unk2[4];
@@ -25,7 +25,7 @@ typedef struct
 typedef struct
 {
 	u8 parent_folder_index[4];
-    u8 filename[0x10];
+    char filename[0x10];
     u8 unk0[4];
     u8 unk1[4]; // magic?
     u8 unk2[4];
