@@ -36,6 +36,13 @@ typedef enum
 
 typedef enum
 {
+	WIN_32 = 0x5C,
+	UNIX = 0x2F
+} platform;
+
+
+typedef enum
+{
 	primary = 0,
 	secondary = 1
 } difi_partitions;

@@ -4,11 +4,6 @@ typedef enum
 	vsxe_magic_id = 0x30000
 } VSXE_data;
 
-typedef enum
-{
-	WIN_32 = 0x5C,
-	UNIX = 0x2F
-} platform;
 
 //Structs
 typedef struct
@@ -36,7 +31,7 @@ typedef struct
 
 typedef struct
 {
-	//TODO
+	u8 unk0[40][4];
 } data_table;
 
 typedef struct
@@ -49,6 +44,7 @@ typedef struct
 	u8 last_used_file_extdata_id[4];
 	u8 unk2[4];
 	char last_used_file[0x100];
+	data_table table;
 } vsxe_header;
 
 typedef struct

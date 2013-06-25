@@ -16,6 +16,7 @@ make_cia.exe
 *.ctpk
 *.db
 *.bin
+*.dec
 
 ############
 ## Windows

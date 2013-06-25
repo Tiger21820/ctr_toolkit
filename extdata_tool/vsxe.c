@@ -182,6 +182,15 @@ void PrintVSXE_FS_INFO(VSXE_CONTEXT *ctx)
 		printf(" Image %08x is mounted at: '%s'\n",i,path);
 	}
 	free(path);
+	/**
+	printf("Data Table Info:\n");
+	for(int i = 1; i < 40; i += 4){
+		//printf("%03d : %08x %08x %08x %08x\n",i,u8_to_u32(ctx->header.table.unk0[i],LE));
+		for(int j = 0; j < 4; j++)
+			printf(" %08x",u8_to_u32(ctx->header.table.unk0[i+j],LE));
+		printf("\n");
+	}
+	**/
 }
 
 void Return_Dir_Path(VSXE_CONTEXT *ctx, u32 file_id, char *path, u8 platform)
