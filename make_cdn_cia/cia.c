@@ -67,7 +67,7 @@ TIK_CONTEXT process_tik(FILE *tik)
 		tik_context.result = ERR_UNRECOGNISED_SIG;
 		return tik_context;
 	}
-	endian_strcpy(tik_context.title_id,tik_struct.title_id,8,BIG_ENDIAN);
+	memcpy(tik_context.title_id,tik_struct.title_id,8);
 	
 	//printf("[+] CETK Title ID: "); u8_hex_print_be(tik_context.title_id,0x8); printf("\n");
 	//printf("[+] CETK Size:     0x%x\n",tik_context.tik_size);
@@ -106,7 +106,7 @@ TMD_CONTEXT process_tmd(FILE *tmd)
 		tmd_context.result = ERR_UNRECOGNISED_SIG;
 		return tmd_context;
 	}
-	endian_strcpy(tmd_context.title_id,tmd_struct.title_id,8,BIG_ENDIAN);
+	memcpy(tmd_context.title_id,tmd_struct.title_id,8);
 	
 	tmd_context.content_struct = malloc(sizeof(TMD_CONTENT_CHUNK_STRUCT)*tmd_context.content_count);
 	tmd_context.content = malloc(0x4*tmd_context.content_count);
@@ -145,16 +145,20 @@ TMD_CONTEXT process_tmd(FILE *tmd)
 CIA_HEADER set_cia_header(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context)
 {
 	CIA_HEADER cia_header;
-	memset(&cia_header,0x0,sizeof(cia_header));
+	memset(&cia_header,0,sizeof(cia_header));
 	cia_header.header_size = sizeof(CIA_HEADER);
-	cia_header.type = 0x0;
-	cia_header.version = 0x0;
+	cia_header.type = 0;
+	cia_header.version = 0;
 	cia_header.cert_size = get_total_cert_size(tmd_context,tik_context);
 	cia_header.tik_size = tik_context.tik_size;
 	cia_header.tmd_size = tmd_context.tmd_size;
-	cia_header.meta_size = 0x0;
+	cia_header.meta_size = 0;
 	cia_header.content_size = get_content_size(tmd_context);
-	cia_header.magic_0 = 0x80;
+	u64 index = 0;
+	for(int i = 0; i < tmd_context.content_count; i++){
+		index += (0x8000000000000000/(2<<u8_to_u16(tmd_context.content_struct[i].content_index,BE)))*2;
+	}
+	u64_to_u8(cia_header.content_index,index,BE);
 	return cia_header;
 }
 

@@ -22,20 +22,20 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <time.h>
+#include <unistd.h>
 
 #ifdef _WIN32
 	#include <io.h>
 	#include <direct.h>
+	#include <windows.h>
+	#include <wchar.h>
 #else
 	#include <sys/stat.h>
-	#include <unistd.h>
+	#include <sys/types.h>
 #endif
 
 #include "types.h"
 #include "utils.h"
 
-#define IO_FAIL 1
-#define FILE_PROCESS_FAIL 2
 
-#define FALSE 0
-#define TRUE 1

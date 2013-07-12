@@ -18,9 +18,34 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 **/
 #include <stdlib.h>
 #include <stdint.h>
+//Bools
+typedef enum
+{
+	False,
+	True
+} _boolean;
 
-#define TRUE 1
-#define FALSE 0
+typedef enum
+{
+	Good,
+	Fail
+} return_basic;
+
+typedef enum
+{
+	ARGC_FAIL = 1,
+	ARGV_FAIL,
+	IO_FAIL,
+	FILE_PROCESS_FAIL
+} errors;
+
+typedef enum
+{
+	BIG_ENDIAN = 0,
+	LITTLE_ENDIAN = 1,
+	BE = 0,
+	LE = 1
+} endianness_flag;
 
 typedef unsigned char   u8;
 typedef unsigned short  u16;

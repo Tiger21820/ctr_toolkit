@@ -150,10 +150,9 @@ typedef struct
 	u32 tmd_size;
 	u32 meta_size;
 	u64 content_size;
-	u8 magic_0;
-	u8 magic_1[0x1fff];
-} __attribute__((__packed__)) 
-CIA_HEADER;
+	u8 content_index[8];
+	u8 reserved[0x1ff8];
+} CIA_HEADER;
 
 //Main Function
 int generate_cia(TMD_CONTEXT tmd_context, TIK_CONTEXT tik_context, FILE *output);
