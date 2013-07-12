@@ -45,6 +45,18 @@ void endian_memcpy(u8 *destination, u8 *source, u32 size, int endianness)
     }
 }
 
+void u8_hex_print_be(u8 *array, int len)
+{
+	for(int i = 0; i < len; i++)
+		printf("%02x",array[i]);
+}
+
+void u8_hex_print_le(u8 *array, int len)
+{
+	for(int i = 0; i < len; i++)
+		printf("%02x",array[len - i - 1]);
+}
+
 u32 align_value(u32 value, u32 alignment)
 {
 	u32 tmp = value;
@@ -66,72 +78,101 @@ void resolve_flag(unsigned char flag, unsigned char *flag_bool)
 	}
 }
 
+void resolve_flag_u16(u16 flag, unsigned char *flag_bool)
+{
+	u16 bit_mask[16] = {0x8000,0x4000,0x2000,0x1000,0x800,0x400,0x200,0x100,0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
+	for(int i = 0; i < 16; i++){
+		if (flag >= bit_mask[i]){
+			flag_bool[15-i] = True;
+			flag -= bit_mask[i];
+		}
+	else
+		flag_bool[15-i] = False;
+	}
+}
+
 //IO Related
 void WriteBuffer(void *buffer, u64 size, u64 offset, FILE *output)
 {
-	fseek(output,offset,SEEK_SET);
+	fseek_64(output,offset,SEEK_SET);
 	fwrite(buffer,size,1,output);
 } 
 
-int dotruncate(char *fn, __int64 len)
+u64 GetFileSize_u64(char *filename)
 {
+	u64 size;
+#ifdef _WIN32
+	int fh;
+ 	u64 n;
+  	fh = _open( filename, 0 );
+  	n = _lseeki64(fh, 0, SEEK_END);
+	_close(fh);
+	size = (n / sizeof(short))*2;
+#else
+	FILE *file = fopen(filename,"rb");
+	fseeko(file, 0L, SEEK_END);
+	size = ftello(file);
+	fclose(file);
+#endif
+	return size;
+}
+
+int TruncateFile_u64(char *filename, u64 filelen)
+{
+#ifdef _WIN32
 	HANDLE fh;
  
 	LARGE_INTEGER fp;
-	fp.QuadPart = len;
+	fp.QuadPart = filelen;
  
-	fh = CreateFile(fn, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	fh = CreateFile(filename, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (fh == INVALID_HANDLE_VALUE) {
 		printf("[!] Invalid File handle\n");
-		//oops(fn);
 		return 1;
 	}
  
 	if (SetFilePointerEx(fh, fp, NULL, FILE_BEGIN) == 0 ||
 	    SetEndOfFile(fh) == 0) {
 		printf("[!] truncate failed\n");
-		//oops(fn);
 		CloseHandle(fh);
 		return 1;
 	}
  
 	CloseHandle(fh);
 	return 0;
-}
-
-__int64 nsamples(char* filename)
-{
-  int fh;
-  __int64 n;
-
-  /* Open file */
-  fh = _open( filename, 0 );
-
-  /* Find end of file */
-  n = _lseeki64(fh, 0, SEEK_END);
-
-  /* Close file */
-  _close(fh);
-
- return (n / sizeof(short))*2;
-}
-
-/**
-u64 GetFileSize(FILE *file)
-{
-	u64 size = 0;
-#ifdef _WIN32
-	fseek(file, 0L, SEEK_END);
-	size = ftell(file);
-	fseek(file, 0L, SEEK_SET);
 #else
-	fseeko(file, 0L, SEEK_END);
-	size = ftello(file);
-	fseeko(file, 0L, SEEK_SET);
-#endif
-	return size;
+	return truncate(filename,filelen);
+#endif	
 }
-**/
+
+int fseek_64(FILE *fp, u64 file_pos, int whence)
+{
+#ifdef _WIN32
+	fpos_t pos = file_pos;
+	return fsetpos(fp,&pos); //I can't believe the 2gb problem with Windows & MINGW, maybe I have a bad installation :/
+#else
+	return fseeko(fp,file_pos,whence);
+#endif
+}
+
+int makedir(const char* dir)
+{
+#ifdef _WIN32
+	return _mkdir(dir);
+#else
+	return mkdir(dir, 0777);
+#endif
+}
+
+char *getcwdir(char *buffer,int maxlen)
+{
+#ifdef _WIN32
+return _getcwd(buffer,maxlen);
+#else
+return getcwd(buffer,maxlen);
+#endif
+}
+
 //Data Size conversion
 u16 u8_to_u16(u8 *value, u8 endianness)
 {

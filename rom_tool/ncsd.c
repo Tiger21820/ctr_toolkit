@@ -26,7 +26,7 @@ int NCSDProcess(ROM_CONTEXT *ctx)
 int TrimROM(ROM_CONTEXT *ctx)
 {
 	printf("[+] Trimming ROM\n");
-	if(dotruncate(ctx->romfile.argument,ctx->ncsd_struct->used_rom_size) != 0){
+	if(TruncateFile_u64(ctx->romfile.argument,ctx->ncsd_struct->used_rom_size) != 0){
 		printf("[!] Failed to trim ROM\n");
 		return Fail;
 	}
@@ -36,13 +36,12 @@ int TrimROM(ROM_CONTEXT *ctx)
 int RestoreROM(ROM_CONTEXT *ctx)
 {
 	printf("[+] Restoring ROM\n");
-	if(dotruncate(ctx->romfile.argument,ctx->ncsd_struct->rom_size) != 0){
+	if(TruncateFile_u64(ctx->romfile.argument,ctx->ncsd_struct->rom_size) != 0){
 		printf("[!] Failed to Restore ROM\n");
 		return Fail;
 	}
 	FILE *rom = fopen(ctx->romfile.argument,"rb+");
-	fpos_t pos = ctx->ncsd_struct->used_rom_size;
-	fsetpos(ctx->romfile.file.file,&pos);
+	fseek_64(ctx->romfile.file.file,ctx->ncsd_struct->used_rom_size,SEEK_SET);
 	WriteDummyBytes(ctx->romfile.file.file,0xff,(ctx->ncsd_struct->rom_size - ctx->ncsd_struct->used_rom_size));
 	fclose(rom);
 	return 0;
@@ -65,7 +64,7 @@ int GetNCSDData(ROM_CONTEXT *ctx)
 		return Fail;
 	memset(ctx->ncsd_struct,0x0,sizeof(NCSD_STRUCT));
 	
-	ctx->ncsd_struct->actual_rom_file_size = nsamples(ctx->romfile.argument);
+	ctx->ncsd_struct->actual_rom_file_size = GetFileSize_u64(ctx->romfile.argument);
 	
 	NCSD_HEADER header;
 	CARD_INFO_HEADER card_info;
@@ -106,14 +105,12 @@ int GetNCSDData(ROM_CONTEXT *ctx)
 		ctx->ncsd_struct->partition_data[i].crypto_type = header.partitions_crypto_type[i];
 		
 		u8 magic[4];
-		fpos_t pos = ctx->ncsd_struct->partition_data[i].offset + 0x100;
-		fsetpos(ctx->romfile.file.file,&pos);
+		fseek_64(ctx->romfile.file.file,(ctx->ncsd_struct->partition_data[i].offset + 0x100),SEEK_SET);
 		fread(&magic,4,1,ctx->romfile.file.file);
 		if(u8_to_u32(magic,BE) == NCCH_MAGIC){
 			u8 flags[8];
 			u8 flag_bool[8];
-			fpos_t pos = ctx->ncsd_struct->partition_data[i].offset + 0x188;
-			fsetpos(ctx->romfile.file.file,&pos);
+			fseek_64(ctx->romfile.file.file,(ctx->ncsd_struct->partition_data[i].offset + 0x188),SEEK_SET);
 			fread(&flags,8,1,ctx->romfile.file.file);
 			resolve_flag(flags[5],flag_bool);
 			if(flag_bool[1] == False && flag_bool[0] == True){
@@ -130,9 +127,7 @@ int GetNCSDData(ROM_CONTEXT *ctx)
 				ctx->ncsd_struct->partition_data[i].content_type = CXI;
 			else
 				ctx->ncsd_struct->partition_data[i].content_type = _unknown;
-			
-			pos = ctx->ncsd_struct->partition_data[i].offset + 0x150;
-			fsetpos(ctx->romfile.file.file,&pos);
+			fseek_64(ctx->romfile.file.file,(ctx->ncsd_struct->partition_data[i].offset + 0x150),SEEK_SET);
 			fread(ctx->ncsd_struct->partition_data[i].product_code,16,1,ctx->romfile.file.file);
 		}
 		else
@@ -189,10 +184,10 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			break;
 	}
 	if(ctx->rom_size >= GB){
-		printf("ROM Cart Size:          %d GB",ctx->rom_size/GB); printf(" (%d Gbit)\n",(ctx->rom_size/GB)*8);
+		printf("ROM Cart Size:          %lld GB",ctx->rom_size/GB); printf(" (%lld Gbit)\n",(ctx->rom_size/GB)*8);
 	}
 	else{
-		printf("ROM Cart Size:          %d MB",ctx->rom_size/MB); 
+		printf("ROM Cart Size:          %lld MB",ctx->rom_size/MB); 
 		u32 tmp = (ctx->rom_size/MB)*8;
 		if(tmp >= 1024)
 			printf(" (%d Gbit)\n",tmp/1024);
@@ -200,10 +195,10 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			printf(" (%d Mbit)\n",tmp);
 	}
 	if(ctx->used_rom_size >= MB){
-		printf("ROM Used Size:          %d MB",ctx->used_rom_size/MB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
+		printf("ROM Used Size:          %lld MB",ctx->used_rom_size/MB); printf(" (0x%llx bytes)\n",ctx->used_rom_size);
 	}
 	else if(ctx->used_rom_size >= KB){
-		printf("ROM Used Size:          %d KB",ctx->used_rom_size/KB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
+		printf("ROM Used Size:          %lld KB",ctx->used_rom_size/KB); printf(" (0x%llx bytes)\n",ctx->used_rom_size);
 	}
 	printf("NCSD Title ID:          %016llx\n",u8_to_u64(header->title_id,LITTLE_ENDIAN));
 	memdump(stdout,"ExHeader Hash:          ",header->exheader_hash,0x20);

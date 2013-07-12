@@ -32,7 +32,7 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 	#include <wchar.h>
 #else
 	#include <sys/stat.h>
-	#include <unistd.h>
+	#include <sys/types.h>
 #endif
 
 #include "types.h"
