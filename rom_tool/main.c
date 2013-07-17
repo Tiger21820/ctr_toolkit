@@ -5,7 +5,7 @@
 typedef enum
 {
 	MAJOR = 2,
-	MINOR = 0
+	MINOR = 1
 } AppVer;
 
 const char argv_lable[8][20] = {"-h","--help","-i","--info","-r","--restore","-t","--trim"};

@@ -1,5 +1,5 @@
 OBJS = utils.o main.o ncsd.o
-LIBS = -lstdc++
+LIBS = -static-libgcc -static-libstdc++
 CXXFLAGS = -I.
 CFLAGS = --std=c99 -Wall -I.
 OUTPUT = rom_tool
