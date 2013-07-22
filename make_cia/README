@@ -1,7 +1,14 @@
 CTR_Toolkit - make_cia - Generates CIA files
-Version: 4.0 2013 (C) 3DSGuy
+Version: 5.0 2013 (C) 3DSGuy
 
 /******** Change Log ********/
+
+Version 5.0:
+* Re-written to remove the need for a configuration file.
+* Can be compiled to include keys much like with version 4, but without the mess. make_cia will load keys from dev_keys.h, but will allow the user to include/overwrite any keys at command line.
+* 'proper' version generation
+* Code should be easier to read
+* Overwriting the Cert chain has been simplified to specifying the complete certchain from at command line
 
 Version 4.0:
 * Code made "cleaner"
@@ -29,25 +36,50 @@ Version 3.0:
 /******** Usage: ********/
 
 Usage: make_cia <options>
-
 OPTIONS                 Possible Values       Explanation
  -h, --help                                   Print this help.
  -v, --verbose                                Enable verbose output.
  -k, --showkeys                               Show the keys being used.
- -c, --config_file      File-in               CIA Configuration File.
- -r, --ncsd             File-in               Convert NCSD Image to CIA.
- -o, --output           File-out              Output CIA file.
- 
+ -e, --encrypt                                Globally Encrypt CIA Contents
+ -out=                  File-out              CIA Output
+CONTENT OPTIONS
+ -contentX=             File-in               Content X path
+ -id_X=                 Value                 Content X ID
+ -index_X=              Value                 Content X Index
+ -encrypt_X                                   Encrypt Content X
+ -optional_X                                  Flag Content X as 'Optional'
+ -shared_X                                    Flag Content X as 'Shared'
+EXTRA OPTIONS
+ -savesize=             Value                 Savedata Size in KB
+ -tikID=                Value                 Ticket ID
+ -titleID=              Value                 Title ID
+ -major=                Value                 TMD Version Major
+ -minor=                Value                 TMD Version Minor
+ -micro=                Value                 TMD Version Micro
+ -tikmajor=             Value                 TIK Version Major
+ -tikminor=             Value                 TIK Version Minor
+ -tikmicro=             Value                 TIK Version Micro
+CRYPTOGRAPHY OPTIONS
+ -ckey=                 Value                 Common Key
+ -ckeyID=               Value                 Common Key ID
+ -cxikey=               Value                 CXI Key
+ -titlekey=             Value                 Title Key
+ -rand                                        Use a Random Title Key
+ -tmdkey=               File-in               TMD RSA Keyfile
+ -tikkey=               File-in               TIK RSA Keyfile
+ -certs=                File-in               Certificate Chain File
+SPECIAL BUILD OPTIONS
+ -srl=                  File-in               Specify a SRL for content0.
+ -rom=                  File-in               Convert ROM to CIA.
+
 Examples:
 
-make_cia -c project\build.cfg -o app.cia
-make_cia -c project\build.cfg -r project\app.cci -o app.cia
-
+make_cia -srl=test.nds -out=test.cia
+make_cia -rom=test.cci -out=test.cia
+make_cia -content0=test.cxi -out=test.cia
+ 
 NOTE: The nature of this program lets you have a larger "input" into the CIA creation process(in contrast to ctr_makecia32), so a wide variety of titles(and some not yet created at time of writing) can still be packaged with this program. However this also means that incorrect input can lead to invalid CIAs, so be careful.
 
 /******** Credits ********/
 A big thanks to neimod, as the API for the polarssl crypto lib is based on his implementation in ctrtool. And special thanks to Jl12 and yellows8.
 
-/******** Regarding Input Files ********/
-
-Download the sample input pack: https://dl.dropboxusercontent.com/u/60710927/CTR/make_cia/Sample_Input.7z
