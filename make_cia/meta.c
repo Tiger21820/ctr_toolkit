@@ -18,13 +18,13 @@ int GenerateMeta(CIA_CONTEXT *ctx)
 	memset(&cxi_icon,0x0,sizeof(COMPONENT_STRUCT));
 	u32 offset;
 	FILE *ncch;
-	if(ctx->ncsd_convert_flag == False){
+	if(ctx->build_mode == ctr_norm){
 		offset = 0;
 		ncch = fopen(ctx->ContentInfo[0].file_path,"rb");
 	}
 	else{
 		offset = ctx->ncsd_struct->partition_data[0].offset;
-		ncch = ctx->ncsdfile.file.file;
+		ncch = fopen(ctx->core_infile.argument,"rb");
 	}
 	
 	if(GetCXIStruct(&cxi_ctx,offset,ncch) != 0)

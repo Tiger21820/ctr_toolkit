@@ -1,23 +1,4 @@
-/**
-Copyright 2013 3DSGuy
-
-This file is part of make_cdn_cia.
-
-make_cdn_cia is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-make_cdn_cia is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
-**/
 #include "lib.h"
-
 
 //MISC
 void char_to_int_array(unsigned char destination[], char source[], int size, int endianness, int base)
@@ -34,6 +15,8 @@ void char_to_int_array(unsigned char destination[], char source[], int size, int
 		tmp[i][2] = '\0';
         byte_array[i] = (unsigned char)strtol(tmp[i], NULL, base);
     }
+	endian_memcpy(destination,byte_array,size,endianness);
+	/**
 	for (int i = 0; i < size; i++){
         switch (endianness){
         	case(BIG_ENDIAN):
@@ -44,6 +27,7 @@ void char_to_int_array(unsigned char destination[], char source[], int size, int
         	break;
         }
     }
+	**/
 	free(byte_array);
 }
 
@@ -59,6 +43,18 @@ void endian_memcpy(u8 *destination, u8 *source, u32 size, int endianness)
                 break;
         }
     }
+}
+
+void u8_hex_print_be(u8 *array, int len)
+{
+	for(int i = 0; i < len; i++)
+		printf("%02x",array[i]);
+}
+
+void u8_hex_print_le(u8 *array, int len)
+{
+	for(int i = 0; i < len; i++)
+		printf("%02x",array[len - i - 1]);
 }
 
 u32 align_value(u32 value, u32 alignment)
@@ -82,20 +78,90 @@ void resolve_flag(unsigned char flag, unsigned char *flag_bool)
 	}
 }
 
+void resolve_flag_u16(u16 flag, unsigned char *flag_bool)
+{
+	u16 bit_mask[16] = {0x8000,0x4000,0x2000,0x1000,0x800,0x400,0x200,0x100,0x80,0x40,0x20,0x10,0x8,0x4,0x2,0x1};
+	for(int i = 0; i < 16; i++){
+		if (flag >= bit_mask[i]){
+			flag_bool[15-i] = True;
+			flag -= bit_mask[i];
+		}
+	else
+		flag_bool[15-i] = False;
+	}
+}
+
 //IO Related
 void WriteBuffer(void *buffer, u64 size, u64 offset, FILE *output)
 {
-	fseek(output,offset,SEEK_SET);
+	fseek_64(output,offset,SEEK_SET);
 	fwrite(buffer,size,1,output);
 } 
 
-u64 GetFileSize(FILE *file)
+u64 GetFileSize_u64(char *filename)
 {
-	u64 size = 0;
+	u64 size;
+#ifdef _WIN32
+	int fh;
+ 	u64 n;
+  	fh = _open( filename, 0 );
+  	n = _lseeki64(fh, 0, SEEK_END);
+	_close(fh);
+	size = (n / sizeof(short))*2;
+#else
+	FILE *file = fopen(filename,"rb");
+	fseeko(file, 0L, SEEK_END);
+	size = ftello(file);
+	fclose(file);
+#endif
+	return size;
+}
+
+u32 GetFileSize_u32(FILE *file)
+{
+	u32 size = 0;
 	fseek(file, 0L, SEEK_END);
 	size = ftell(file);
 	fseek(file, 0L, SEEK_SET);
 	return size;
+}
+
+int TruncateFile_u64(char *filename, u64 filelen)
+{
+#ifdef _WIN32
+	HANDLE fh;
+ 
+	LARGE_INTEGER fp;
+	fp.QuadPart = filelen;
+ 
+	fh = CreateFile(filename, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (fh == INVALID_HANDLE_VALUE) {
+		printf("[!] Invalid File handle\n");
+		return 1;
+	}
+ 
+	if (SetFilePointerEx(fh, fp, NULL, FILE_BEGIN) == 0 ||
+	    SetEndOfFile(fh) == 0) {
+		printf("[!] truncate failed\n");
+		CloseHandle(fh);
+		return 1;
+	}
+ 
+	CloseHandle(fh);
+	return 0;
+#else
+	return truncate(filename,filelen);
+#endif	
+}
+
+int fseek_64(FILE *fp, u64 file_pos, int whence)
+{
+#ifdef _WIN32
+	fpos_t pos = file_pos;
+	return fsetpos(fp,&pos); //I can't believe the 2gb problem with Windows & MINGW, maybe I have a bad installation :/
+#else
+	return fseeko(fp,file_pos,whence);
+#endif
 }
 
 int makedir(const char* dir)
@@ -110,9 +176,9 @@ int makedir(const char* dir)
 char *getcwdir(char *buffer,int maxlen)
 {
 #ifdef _WIN32
-	return _getcwd(buffer,maxlen);
+return _getcwd(buffer,maxlen);
 #else
-	return getcwd(buffer,maxlen);
+return getcwd(buffer,maxlen);
 #endif
 }
 

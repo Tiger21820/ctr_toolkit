@@ -8,11 +8,9 @@
 
 typedef enum
 {
-	MAJOR = 4,
+	MAJOR = 5,
 	MINOR = 0
 } AppVer;
-
-const char argv_lable[12][15] = {"-h","--help","-v","--verbose","-k","--showkeys","-c","--config_file","-o","--output","-r","--ncsd"};
 
 void app_title(void);
 void help(char *app_name);
@@ -26,106 +24,24 @@ int main(int argc, char *argv[])
 		return ARGC_FAIL;
 	}
 	
-	CIA_CONTEXT *ctx = malloc(sizeof(CIA_CONTEXT));
-	InitialiseSettings(ctx);
-		
-	for(int i = 1; i < argc; i++){
-		if(strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0){
+	for(int i = 0; i < argc; i++){
+		if(strncmp(argv[i],"-h",2) == 0 || strncmp(argv[i],"--help",6) == 0){
 			help(argv[0]);
 			return ARGC_FAIL;
 		}
-		else if(strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0){
-			ctx->verbose_flag = True;
-		}
-		else if(strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--showkeys") == 0){
-			ctx->showkeys_flag = True;
-		}
-		else if(strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--config_file") == 0){
-			if(argv_check(argv[i+1],argc,i) == True){
-				ctx->configfile.used = True;
-				ctx->configfile.arg_len = strlen(argv[i+1]);
-				ctx->configfile.argument = malloc(ctx->configfile.arg_len+1);
-				memcpy(ctx->configfile.argument,argv[i+1],ctx->configfile.arg_len+1);
-			}
-			else{
-				printf("[!] Option '%s' requires an argument\n",argv[i]);
-				help(argv[0]);
-				return ARGC_FAIL;
-			}
-		}
-		else if(strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0){
-			if(argv_check(argv[i+1],argc,i) == True){
-				ctx->outfile.used = True;
-				ctx->outfile.arg_len = strlen(argv[i+1]);
-				ctx->outfile.argument = malloc(ctx->outfile.arg_len+1);
-				memcpy(ctx->outfile.argument,argv[i+1],ctx->outfile.arg_len+1);
-			}
-			else{
-				printf("[!] Option '%s' requires an argument\n",argv[i]);
-				help(argv[0]);
-				return ARGC_FAIL;
-			}
-		}
-		else if(strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--ncsd") == 0){
-			if(argv_check(argv[i+1],argc,i) == True){
-				ctx->ncsd_convert_flag = True;
-				ctx->ncsdfile.used = True;
-				ctx->ncsdfile.arg_len = strlen(argv[i+1]);
-				ctx->ncsdfile.argument = malloc(ctx->ncsdfile.arg_len+1);
-				memcpy(ctx->ncsdfile.argument,argv[i+1],ctx->ncsdfile.arg_len+1);
-				ctx->ncsdfile.file.used = True;
-				ctx->ncsdfile.file.file = fopen(ctx->ncsdfile.argument,"rb");
-				if(ctx->ncsdfile.file.file == NULL){
-					printf("[!] Failed to open '%s' (NCSD File)\n",ctx->ncsdfile.argument);
-					ctx->ncsdfile.file.used = False;
-					return 1;
-				}
-			}
-			else{
-				printf("[!] Option '%s' requires an argument\n",argv[i]);
-				help(argv[0]);
-				return ARGC_FAIL;
-			}
-		}
 	}
-	if(ctx->ncsd_convert_flag == True)
-		goto ncsd_conversion_process;
-	else
-		goto regular_cia_process;
-
-ncsd_conversion_process:
-#ifndef _DEBUG_KEY_BUILD_
-	if(ctx->configfile.used != True){
-			printf("[!] No CIA configuration file was specified\n");
-			goto fail_cleanup;
-	}
-#endif
-	if(GetSettings_NCSD(ctx) != 0){
-			printf("[!] Settings Error\n");
-			goto fail_cleanup;
-	}
-	if(SetupContentData_NCSD(ctx) != 0){
-		printf("[!] Content Parsing error\n");
-		goto fail_cleanup;
-	}
-	goto cia_data_gen;
-
-regular_cia_process:
-	if(ctx->configfile.used != True){
-		printf("[!] No CIA configuration file was specified\n");
-		goto fail_cleanup;
-	}
-	if(GetSettings(ctx) != 0){
-		printf("[!] Settings Error\n");
-		goto fail_cleanup;
-	}
-	if(SetupContentData(ctx) != 0){
-		printf("[!] Content Parsing error\n");
-		goto fail_cleanup;
-	}
-	goto cia_data_gen;
 	
-cia_data_gen:
+	CIA_CONTEXT *ctx = malloc(sizeof(CIA_CONTEXT));
+	InitialiseSettings(ctx);
+	if(GetSettings(ctx,argc,argv) != 0){
+		printf("[!] Input Error, see '%s -h' for more info\n",argv[0]);
+		//help(argv[0]);
+		goto fail_cleanup;
+	}
+	if(SetupContent(ctx) != 0){
+		printf("[!] Content could not be setup for CIA\n");
+		goto fail_cleanup;
+	}
 	if(GenerateTicket(ctx) != 0){
 		printf("[!] Ticket region could not be generated\n");
 		goto fail_cleanup;
@@ -157,17 +73,7 @@ fail_cleanup:
 		printf("[!] Failed to generate %s\n",ctx->outfile.argument);
 	free_buffers(ctx);
 	return 1;
-}
 
-int argv_check(char *string, int argc, int index)
-{
-	if(index >= (argc - 1))
-		return False;
-	for(int i = 0; i < 12; i++){
-		if(strcmp(string,argv_lable[i]) == 0)
-			return False;
-	}
-	return True;
 }
 
 void free_buffers(CIA_CONTEXT *ctx)
@@ -177,16 +83,16 @@ void free_buffers(CIA_CONTEXT *ctx)
 		fclose(ctx->outfile.file.file);
 	if(ctx->configfile.file.used == True)
 		fclose(ctx->configfile.file.file);
-	if(ctx->ncsdfile.file.used == True)
-		fclose(ctx->ncsdfile.file.file);
+	if(ctx->core_infile.file.used == True)
+		fclose(ctx->core_infile.file.file);
 	
 	//Freeing Arguments
 	if(ctx->outfile.used)
 		free(ctx->outfile.argument);
 	if(ctx->configfile.used)
 		free(ctx->configfile.argument);
-	if(ctx->ncsdfile.used)
-		free(ctx->ncsdfile.argument);
+	if(ctx->core_infile.used)
+		free(ctx->core_infile.argument);
 	
 	//Freeing CIA section buffers
 	if(ctx->header.used)
@@ -224,7 +130,34 @@ void help(char *app_name)
 	printf(" -h, --help                                   Print this help.\n");
 	printf(" -v, --verbose                                Enable verbose output.\n");
 	printf(" -k, --showkeys                               Show the keys being used.\n");
-	printf(" -c, --config_file      File-in               CIA Configuration File.\n");
-	printf(" -r, --ncsd             File-in               Convert NCSD Image to CIA.\n");
-	printf(" -o, --output           File-out              Output CIA file.\n");
+	printf(" -e, --encrypt                                Globally Encrypt CIA Contents\n");
+	printf("CONTENT OPTIONS\n");
+	printf(" -contentX=             File-in               Content X path\n");
+	printf(" -id_X=                 Value                 Content X ID\n");
+	printf(" -index_X=              Value                 Content X Index\n");
+	printf(" -encrypt_X                                   Encrypt Content X\n");
+	printf(" -optional_X                                  Flag Content X as 'Optional'\n");
+	printf(" -shared_X                                    Flag Content X as 'Shared'\n");
+	printf("EXTRA OPTIONS\n");
+	printf(" -savesize=             Value                 Savedata Size in KB\n");
+	printf(" -tikID=                Value                 Ticket ID\n");
+	printf(" -titleID=              Value                 Title ID\n");
+	printf(" -major=                Value                 TMD Version Major\n");
+	printf(" -minor=                Value                 TMD Version Minor\n");
+	printf(" -micro=                Value                 TMD Version Micro\n");
+	printf(" -tikmajor=             Value                 TIK Version Major\n");
+	printf(" -tikminor=             Value                 TIK Version Minor\n");
+	printf(" -tikmicro=             Value                 TIK Version Micro\n");
+	printf("CRYPTOGRAPHY OPTIONS\n");
+	printf(" -ckey=                 Value                 Common Key\n");
+	printf(" -ckeyID=               Value                 Common Key ID\n");
+	printf(" -cxikey=               Value                 CXI Key\n");
+	printf(" -titlekey=             Value                 Title Key\n");
+	printf(" -rand                                        Use a Random Title Key\n");
+	printf(" -tmdkey=               File-in               TMD RSA Keyfile\n");
+	printf(" -tikkey=               File-in               TIK RSA Keyfile\n");
+	printf(" -certs=                File-in               Certificate Chain File\n");
+	printf("SPECIAL BUILD OPTIONS\n");
+	printf(" -srl=                  File-in               Specify a SRL for content0.\n");
+	printf(" -rom=                  File-in               Convert ROM to CIA.\n");
 }

@@ -12,8 +12,7 @@ typedef struct
 } __attribute__((__packed__)) 
 CIA_HEADER;
 
-int SetupContentData(CIA_CONTEXT *ctx);
-int SetupContentData_NCSD(CIA_CONTEXT *ctx);
+int SetupContent(CIA_CONTEXT *ctx);
 int SetupCIAHeader(CIA_CONTEXT *ctx);
 int WriteSectionsToOutput(CIA_CONTEXT *ctx);
 int EncryptContent(u8 *EncBuffer,u8 *buffer,u64 size,u8 *title_key, u16 index);

@@ -6,6 +6,13 @@ typedef enum
 
 typedef enum
 {
+	ctr_norm = 1,
+	twl_cia,
+	rom_conv
+} cia_build_mode;
+
+typedef enum
+{
 	TYPE_CTR = 0x40,
 	TYPE_DATA = 0x8
 } title_type;
@@ -220,6 +227,7 @@ typedef struct
 	u8 valid;
 	u8 encrypted;
 	char file_path[100];
+	u64 file_offset;
 	u8 content_id[4];
 	u16 content_index;
 	u16 content_type;
@@ -276,6 +284,7 @@ typedef struct
 	CORE_CONTENT_INFO core;
 	
 	//Input Info
+	OPTION_CTX core_infile;
 	OPTION_CTX configfile;
 	OPTION_CTX outfile;
 	OPTION_CTX ncsdfile;
@@ -285,7 +294,10 @@ typedef struct
 	NCSD_STRUCT *ncsd_struct;
 	
 	//Settings
-	u8 ncsd_convert_flag;
+	u8 encrypt_contents;
+	u8 rand_titlekey;
+	u8 build_mode;
+	u8 cia_type;
 	u8 verbose_flag;
 	u8 meta_flag;
 	u8 showkeys_flag;

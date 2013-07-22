@@ -33,31 +33,17 @@ typedef struct
 } __attribute__((__packed__))
 CERT_DATA_STRUCT;
 
+// Retrieve Settings from argc/argv
+int GetSettings(CIA_CONTEXT *ctx, int argc, char *argv[]);
+int SetBooleanSettings(CIA_CONTEXT *ctx, int argc, char *argv[]);
+int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[]);
+int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[]);
+int SetBuildSettings(CIA_CONTEXT *ctx, int argc, char *argv[]);
+int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[]);
+//
 void InitialiseSettings(CIA_CONTEXT *ctx);
-int GetSettings(CIA_CONTEXT *ctx);
-int GetSettings_NCSD(CIA_CONTEXT *ctx);
-
-int LoadAESKeys(CIA_CONTEXT *ctx);
-#ifndef _DEBUG_KEY_BUILD_	
-int LoadRSAKeys(CIA_CONTEXT *ctx);
 int LoadRSAKeyFile(RSA_2048_KEY *ctx, FILE *file);
-#endif
 void PrintRSAKeyData(RSA_2048_KEY *ctx);
-
-#ifndef _DEBUG_KEY_BUILD_	
-int ImportCertificates(CIA_CONTEXT *ctx);
-int ImportCertificateFile(CERT_BUFF *buff, char *cert_lable, FILE *config_file);
-#endif
-
-
-int GetCoreInfo(CIA_CONTEXT *ctx);
-int GetCoreInfo_NCSD(CIA_CONTEXT *ctx);
-int SetBuildSettings(CIA_CONTEXT *ctx);
-
 int SetTicketIssuer(CIA_CONTEXT *ctx);
 int SetTitleMetaDataIssuer(CIA_CONTEXT *ctx);
-
-int GetContentInfo(CONTENT_INFO *ctx, int content_index, FILE *config_file);
-
 void ReadFile_u32(void *outbuff,u32 offset,u32 size,FILE *file);
-void ReadFile_Text_u32(char *outbuff,u32 offset,u32 size,FILE *file);

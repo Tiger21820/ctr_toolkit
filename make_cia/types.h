@@ -1,7 +1,7 @@
 /**
 Copyright 2013 3DSGuy
 
-This file is part of make_cdn_cia.
+This file is part of make_cia.
 
 make_cdn_cia is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ typedef enum
 {
 	False,
 	True
-} boolean;
+} _boolean;
 
 typedef enum
 {

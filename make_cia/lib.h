@@ -1,7 +1,7 @@
 /**
 Copyright 2013 3DSGuy
 
-This file is part of make_cdn_cia.
+This file is part of make_cia.
 
 make_cdn_cia is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,13 +23,16 @@ along with make_cdn_cia.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdbool.h>
 #include <ctype.h>
 #include <time.h>
+#include <unistd.h>
 
 #ifdef _WIN32
 	#include <io.h>
 	#include <direct.h>
+	#include <windows.h>
+	#include <wchar.h>
 #else
 	#include <sys/stat.h>
-	#include <unistd.h>
+	#include <sys/types.h>
 #endif
 
 #include "types.h"

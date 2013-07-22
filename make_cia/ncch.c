@@ -31,7 +31,7 @@ int GetCoreContentNCCH(CIA_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, FI
 	if(cxi_ctx->encrypted == True){
 		CryptNCCHSection(ExHeader,cxi_ctx,ctx->keys.ncch_key.key,NCCHTYPE_EXHEADER);
 		if(memcmp((ExHeader+0x200),cxi_ctx->programID,8) != 0){
-			printf("[!] CXI decryption failed\n");
+			printf("[!] CXI decryption failed (Check CXIKey)\n");
 			printf("[!] Actual savedata size, title version and Meta region could not be obtained\n");
 			ctx->meta_flag = False;
 			goto cleanup;

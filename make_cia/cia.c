@@ -3,74 +3,46 @@
 #include "settings.h"
 #include "cia.h"
 
-int SetupContentData(CIA_CONTEXT *ctx)
-{	
-	ctx->ContentInfoMallocFlag = True;
-	ctx->ContentInfo = malloc(sizeof(CONTENT_INFO)*ctx->ContentCount);
-	memset(ctx->ContentInfo,0x0,(sizeof(CONTENT_INFO)*ctx->ContentCount));
+int SetupContent(CIA_CONTEXT *ctx)
+{
 	ctx->content.used = True;
-	u64 TotalContentSize = 0;	
+	u64 TotalContentSize = 0;
 	for(u16 i = 0; i < ctx->ContentCount; i++){
-		if(GetContentInfo(&ctx->ContentInfo[i],i,ctx->configfile.file.file) != 0){
-			printf("[!] Failed to read config file info for Content%d\n",i);
-			return 1;
+		if(ctx->build_mode != rom_conv){
+			u64 Size = GetFileSize_u64(ctx->ContentInfo[i].file_path);
+			ctx->ContentInfo[i].content_size = Size + GetContentPaddingSize(Size,0x10);
 		}
-		FILE *content_file = fopen(ctx->ContentInfo[i].file_path,"rb");
-		if(content_file == NULL){
-			printf("[!] Failed to open '%s'\n",ctx->ContentInfo[i].file_path);
-			return 1;
-		}
-		u64 Size = GetFileSize(content_file);
-		ctx->ContentInfo[i].content_size = Size + GetContentPaddingSize(Size,0x10);
 		TotalContentSize += ctx->ContentInfo[i].content_size;
-		fclose(content_file);
 	}
 	ctx->content.size = TotalContentSize;
 	ctx->content.buffer = malloc(ctx->content.size);
-	memset(ctx->content.buffer,0,ctx->content.size);	
+	memset(ctx->content.buffer,0xff,ctx->content.size);
 	
 	u64 ContentOffsetStart = 0;
 	for(u16 i = 0; i < ctx->ContentCount; i++){
+		u64 TrueSize = 0;
+		if(ctx->build_mode == rom_conv)
+			TrueSize = ctx->ContentInfo[i].content_size;
+		else
+			TrueSize = GetFileSize_u64(ctx->ContentInfo[i].file_path);
+		
+		//printf("Content %d has a True size of 0x%llx and an actual Size of 0x%llx @ offset 0x%llx\n",i,TrueSize,ctx->ContentInfo[i].content_size,ctx->ContentInfo[i].file_offset);
+		
 		FILE *content_file = fopen(ctx->ContentInfo[i].file_path,"rb");
 		if(content_file == NULL){
 			printf("[!] Failed to open '%s'\n",ctx->ContentInfo[i].file_path);
 			return 1;
 		}
-		fread((ctx->content.buffer + ContentOffsetStart),GetFileSize(content_file),1,content_file);
-		ctr_sha_256((ctx->content.buffer + ContentOffsetStart),GetFileSize(content_file),ctx->ContentInfo[i].sha_256_hash);
-		if(ctx->ContentInfo->encrypted == True){
+		fseek_64(content_file,ctx->ContentInfo[i].file_offset,SEEK_SET);
+		fread((ctx->content.buffer + ContentOffsetStart),TrueSize,1,content_file);
+		ctr_sha_256((ctx->content.buffer + ContentOffsetStart),ctx->ContentInfo[i].content_size,ctx->ContentInfo[i].sha_256_hash);
+		if(ctx->ContentInfo[i].encrypted == True){
 			EncryptContent((ctx->content.buffer + ContentOffsetStart),(ctx->content.buffer + ContentOffsetStart),ctx->ContentInfo[i].content_size,ctx->keys.title_key.key,ctx->ContentInfo[i].content_index);
 		}
 		ContentOffsetStart += ctx->ContentInfo[i].content_size;
 		fclose(content_file);
-	}		
-	return 0;
-}
-
-int SetupContentData_NCSD(CIA_CONTEXT *ctx)
-{	
-	ctx->ContentInfoMallocFlag = True;
-	ctx->ContentInfo = malloc(sizeof(CONTENT_INFO)*ctx->ContentCount);
-	memset(ctx->ContentInfo,0x0,(sizeof(CONTENT_INFO)*ctx->ContentCount));
-	ctx->content.used = True;
-	ctx->content.size = (ctx->ncsd_struct->used_rom_size - ctx->ncsd_struct->partition_data[0].offset);
-	ctx->content.buffer = malloc(ctx->content.size);
-	memset(ctx->content.buffer,0,ctx->content.size);
-	u64 ContentOffsetStart = 0;
-	for(u32 i = 0, j = 0;(i < 8 || j < ctx->ContentCount); i++){
-		if(ctx->ncsd_struct->partition_data[i].active == True){
-			u32_to_u8(ctx->ContentInfo[j].content_id,j,BE);
-			ctx->ContentInfo[j].content_type = Encrypted;
-			ctx->ContentInfo[j].content_index = i;
-			ctx->ContentInfo[j].content_size = ctx->ncsd_struct->partition_data[i].size;
-			fseek(ctx->ncsdfile.file.file,ctx->ncsd_struct->partition_data[i].offset,SEEK_SET);
-			fread((ctx->content.buffer + ContentOffsetStart),ctx->ContentInfo[j].content_size,1,ctx->ncsdfile.file.file);
-			ctr_sha_256((ctx->content.buffer + ContentOffsetStart),ctx->ncsd_struct->partition_data[i].size,ctx->ContentInfo[j].sha_256_hash);
-			EncryptContent((ctx->content.buffer + ContentOffsetStart),(ctx->content.buffer + ContentOffsetStart),ctx->ContentInfo[i].content_size,ctx->keys.title_key.key,ctx->ContentInfo[j].content_index);
-			ContentOffsetStart += ctx->ContentInfo[j].content_size;
-			j++;
-		}
-	}
+	}	
+	
 	return 0;
 }
 
@@ -95,6 +67,8 @@ int SetupCIAHeader(CIA_CONTEXT *ctx)
 		u32_to_u8(cia_header.meta_size,0x0,LITTLE_ENDIAN);
 	u64_to_u8(cia_header.content_size,ctx->content.size,LITTLE_ENDIAN);
 	
+	//SetCIAContentIndex
+	
 	u64 content_index_flag = 0;
 	for(int i = 0; i < ctx->ContentCount; i++){
 		content_index_flag += (0x8000000000000000/(2<<ctx->ContentInfo[i].content_index))*2;
@@ -107,12 +81,21 @@ int SetupCIAHeader(CIA_CONTEXT *ctx)
 
 int WriteSectionsToOutput(CIA_CONTEXT *ctx)
 {
+	/**
 	if(ctx->outfile.used == False){
 		ctx->outfile.used = True;
 		ctx->outfile.arg_len = 20;
 		ctx->outfile.argument = malloc(ctx->outfile.arg_len);
 		sprintf(ctx->outfile.argument,"%x%02x%02x.cia",ctx->core.TitleID[4],ctx->core.TitleID[5],ctx->core.TitleID[6]);
 	}
+	**/
+	if(ctx->outfile.used != True){
+		ctx->outfile.used = True;
+		ctx->outfile.arg_len = ctx->core_infile.arg_len + 4;
+		ctx->outfile.argument = malloc(ctx->outfile.arg_len+1);
+		sprintf(ctx->outfile.argument,"%s.cia",ctx->core_infile.argument);
+	}
+	
 	ctx->outfile.file.used = True;
 	ctx->outfile.file.file = fopen(ctx->outfile.argument,"wb");
 	if(ctx->outfile.file.file == NULL){
