@@ -312,7 +312,7 @@ int SetBooleanSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 	ctx->build_mode = False;
 	*/
 	for(int i = 1; i < argc; i++){
-		if(strncmp(argv[i],"-e",2) == 0 || strncmp(argv[i],"--encrypt",9) == 0){
+		if(strncmp(argv[i],"--encrypt",9) == 0){
 			ctx->encrypt_contents = True;
 		}
 		else if(strncmp(argv[i],"-rand",5) == 0){

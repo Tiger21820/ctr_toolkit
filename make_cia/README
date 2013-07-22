@@ -40,7 +40,7 @@ OPTIONS                 Possible Values       Explanation
  -h, --help                                   Print this help.
  -v, --verbose                                Enable verbose output.
  -k, --showkeys                               Show the keys being used.
- -e, --encrypt                                Globally Encrypt CIA Contents
+     --encrypt                                Globally Encrypt CIA Contents
  -out=                  File-out              CIA Output
 CONTENT OPTIONS
  -contentX=             File-in               Content X path

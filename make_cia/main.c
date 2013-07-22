@@ -130,7 +130,7 @@ void help(char *app_name)
 	printf(" -h, --help                                   Print this help.\n");
 	printf(" -v, --verbose                                Enable verbose output.\n");
 	printf(" -k, --showkeys                               Show the keys being used.\n");
-	printf(" -e, --encrypt                                Globally Encrypt CIA Contents\n");
+	printf("     --encrypt                                Globally Encrypt CIA Contents\n");
 	printf(" -out=                  File-out              CIA Output\n");
 	printf("CONTENT OPTIONS\n");
 	printf(" -contentX=             File-in               Content X path\n");
