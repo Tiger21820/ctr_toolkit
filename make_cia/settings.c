@@ -108,7 +108,7 @@ int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[])
 					memcpy(ctx->ContentInfo[i].file_path,argv[j]+strlen(path),strlen(argv[j]+strlen(path)));
 				}
 				else if(strncmp(argv[j],id,strlen(id)) == 0){
-					u32 content_id = strtol(argv[j]+6,NULL,16);
+					u32 content_id = strtol(argv[j]+strlen(id),NULL,16);
 					u32_to_u8(ctx->ContentInfo[i].content_id,content_id,BE);
 				}
 				else if(strncmp(argv[j],index,strlen(index)) == 0){
