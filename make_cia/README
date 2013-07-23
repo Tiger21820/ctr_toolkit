@@ -1,7 +1,11 @@
 CTR_Toolkit - make_cia - Generates CIA files
-Version: 5.0 2013 (C) 3DSGuy
+Version: 5.1 2013 (C) 3DSGuy
 
 /******** Change Log ********/
+
+Version 5.1:
+* Changed argument strings to prevent make_cia from confusing various commands with other ones
+* Small bug fixes
 
 Version 5.0:
 * Re-written to remove the need for a configuration file.
@@ -40,46 +44,45 @@ OPTIONS                 Possible Values       Explanation
  -h, --help                                   Print this help.
  -v, --verbose                                Enable verbose output.
  -k, --showkeys                               Show the keys being used.
-     --encrypt                                Globally Encrypt CIA Contents
- -out=                  File-out              CIA Output
+ -e, --encrypt                                Globally Encrypt CIA Contents
+ -o, --out=             File-out              CIA Output
 CONTENT OPTIONS
- -contentX=             File-in               Content X path
- -id_X=                 Value                 Content X ID
- -index_X=              Value                 Content X Index
- -encrypt_X                                   Encrypt Content X
- -optional_X                                  Flag Content X as 'Optional'
- -shared_X                                    Flag Content X as 'Shared'
+ --contentX=            File-in               Content X path
+ --id_X=                Value                 Content X ID
+ --index_X=             Value                 Content X Index
+ --crypt_X                                    Encrypt Content X
+ --optional_X                                 Flag Content X as 'Optional'
+ --shared_X                                   Flag Content X as 'Shared'
 EXTRA OPTIONS
- -savesize=             Value                 Savedata Size in KB
- -tikID=                Value                 Ticket ID
- -titleID=              Value                 Title ID
- -major=                Value                 TMD Version Major
- -minor=                Value                 TMD Version Minor
- -micro=                Value                 TMD Version Micro
- -tikmajor=             Value                 TIK Version Major
- -tikminor=             Value                 TIK Version Minor
- -tikmicro=             Value                 TIK Version Micro
+ -0, --savesize=        Value                 Savedata Size in KB
+ -1, --tikID=           Value                 Ticket ID
+ -2, --titleID=         Value                 Title ID
+ -3, --major=           Value                 TMD Version Major
+ -4, --minor=           Value                 TMD Version Minor
+ -5, --micro=           Value                 TMD Version Micro
+ -6, --tikmajor=        Value                 TIK Version Major
+ -7, --tikminor=        Value                 TIK Version Minor
+ -8, --tikmicro=        Value                 TIK Version Micro
 CRYPTOGRAPHY OPTIONS
- -ckey=                 Value                 Common Key
- -ckeyID=               Value                 Common Key ID
- -cxikey=               Value                 CXI Key
- -titlekey=             Value                 Title Key
- -rand                                        Use a Random Title Key
- -tmdkey=               File-in               TMD RSA Keyfile
- -tikkey=               File-in               TIK RSA Keyfile
- -certs=                File-in               Certificate Chain File
+ --ckey=                Value                 Common Key
+ --ckeyID=              Value                 Common Key ID
+ --cxikey=              Value                 CXI Key
+ --titlekey=            Value                 Title Key
+ --rand                                       Use a Random Title Key
+ --tmdkey=              File-in               TMD RSA Keyfile
+ --tikkey=              File-in               TIK RSA Keyfile
+ --certs=               File-in               Certificate Chain File
 SPECIAL BUILD OPTIONS
- -srl=                  File-in               Specify a SRL for content0.
- -rom=                  File-in               Convert ROM to CIA.
+ --srl=                 File-in               Specify a SRL for content0.
+ --rom=                 File-in               Convert ROM to CIA.
 
 Examples:
 
-make_cia -srl=test.nds -out=test.cia
-make_cia -rom=test.cci -out=test.cia
-make_cia -content0=test.cxi -out=test.cia
+make_cia --srl=test.nds -o test.cia
+make_cia --rom=test.cci -o test.cia
+make_cia --content0=test.cxi -o test.cia
  
 NOTE: The nature of this program lets you have a larger "input" into the CIA creation process(in contrast to ctr_makecia32), so a wide variety of titles(and some not yet created at time of writing) can still be packaged with this program. However this also means that incorrect input can lead to invalid CIAs, so be careful.
 
 /******** Credits ********/
 A big thanks to neimod, as the API for the polarssl crypto lib is based on his implementation in ctrtool. And special thanks to Jl12 and yellows8.
-

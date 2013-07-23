@@ -24,11 +24,17 @@ int GetSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 		return Fail;
 		
 	for(int i = 1; i < argc; i++){
-		if(strncmp(argv[i],"-out=",5) == 0){
+		if(strncmp(argv[i],"--out=",6) == 0 && ctx->outfile.used != True){
 			ctx->outfile.used = True;
 			ctx->outfile.arg_len = strlen(argv[i]+5);
 			ctx->outfile.argument = malloc(ctx->outfile.arg_len+1);
 			strcpy(ctx->outfile.argument,argv[i]+5);
+		}
+		else if(strncmp(argv[i],"-o",2) == 0 && ctx->outfile.used != True){
+			ctx->outfile.used = True;
+			ctx->outfile.arg_len = strlen(argv[i+1]);
+			ctx->outfile.argument = malloc(ctx->outfile.arg_len+1);
+			strcpy(ctx->outfile.argument,argv[i+1]);
 		}
 	}
 	
@@ -89,12 +95,12 @@ int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[])
 				bool_set[0] = True;
 			}
 			//
-			sprintf(path,"-content%d=",i);
-			sprintf(id,"-id_%d=",i);
-			sprintf(index,"-index_%d=",i);
-			sprintf(encrypt_bool,"-encrypt_%d",i);
-			sprintf(optional_bool,"-optional_%d",i);
-			sprintf(shared_bool,"-shared_%d",i);
+			sprintf(path,"--content%d=",i);
+			sprintf(id,"--id_%d=",i);
+			sprintf(index,"--index_%d=",i);
+			sprintf(encrypt_bool,"--crypt_%d",i);
+			sprintf(optional_bool,"--optional_%d",i);
+			sprintf(shared_bool,"--shared_%d",i);
 			//
 			
 			for(int j = 0; j < argc; j++){
@@ -142,23 +148,23 @@ int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[])
 		}
 		
 		for(int i = 0; i < argc; i++){
-			if(strncmp(argv[i],"-id_0=",6) == 0){
-				u32 content_id = strtol(argv[i]+6,NULL,16);
+			if(strncmp(argv[i],"--id_0=",7) == 0){
+				u32 content_id = strtol(argv[i]+7,NULL,16);
 				u32_to_u8(ctx->ContentInfo[0].content_id,content_id,BE);
 			}
-			else if(strncmp(argv[i],"-index_0=",9) == 0){
-				ctx->ContentInfo[0].content_index = strtol(argv[i]+9,NULL,10);
+			else if(strncmp(argv[i],"--index_0=",10) == 0){
+				ctx->ContentInfo[0].content_index = strtol(argv[i]+10,NULL,10);
 			}
-			else if(strncmp(argv[i],"-encrypt_0",10) == 0 && bool_set[0] != True){
+			else if(strncmp(argv[i],"--crypt_0",9) == 0 && bool_set[0] != True){
 				ctx->ContentInfo[0].content_type += Encrypted;
 				bool_set[0] = True;
 				ctx->ContentInfo[0].encrypted = True;
 			}
-			else if(strncmp(argv[i],"-optional_0",11) == 0 && bool_set[1] != True){
+			else if(strncmp(argv[i],"--optional_0",12) == 0 && bool_set[1] != True){
 				ctx->ContentInfo[0].content_type += Optional;
 				bool_set[1] = True;
 			}
-			else if(strncmp(argv[i],"-shared_0",9) == 0 && bool_set[2] != True){
+			else if(strncmp(argv[i],"--shared_0",10) == 0 && bool_set[2] != True){
 				ctx->ContentInfo[0].content_type += Shared;
 				bool_set[2] = True;
 			}
@@ -195,7 +201,7 @@ int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
 			u8 Found = False;
 			for(u16 j = 1; j < argc; j++){
 				char option[20];
-				sprintf(option,"-content%d=",i);
+				sprintf(option,"--content%d=",i);
 				//printf("%s\n",option);
 				if(strncmp(argv[j],option,strlen(option)) == 0){
 					ctx->ContentCount++;
@@ -206,12 +212,12 @@ int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
 					break;
 		}
 		for(int i = 1; i < argc; i++){
-			if(strncmp(argv[i],"-content0=",10) == 0){
+			if(strncmp(argv[i],"--content0=",11) == 0){
 				ctx->core_infile.used = True;
 				ctx->core_infile.file.used = True;
-				ctx->core_infile.arg_len = strlen(argv[i]+10);
+				ctx->core_infile.arg_len = strlen(argv[i]+11);
 				ctx->core_infile.argument = malloc(ctx->core_infile.arg_len+1);
-				memcpy(ctx->core_infile.argument,argv[i]+10,ctx->core_infile.arg_len+1);
+				memcpy(ctx->core_infile.argument,argv[i]+11,ctx->core_infile.arg_len+1);
 				ctx->core_infile.file.file = fopen(ctx->core_infile.argument,"rb");
 				if(ctx->core_infile.file.file == NULL){
 					printf("[!] Failed to open content0: %s\n",argv[i]+10);
@@ -234,12 +240,12 @@ int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
 	}
 	else if(ctx->build_mode == twl_cia){
 		for(int i = 1; i < argc; i++){
-			if(strncmp(argv[i],"-srl=",5) == 0){
+			if(strncmp(argv[i],"--srl=",6) == 0){
 				ctx->core_infile.used = True;
 				ctx->core_infile.file.used = True;
-				ctx->core_infile.arg_len = strlen(argv[i]+5);
+				ctx->core_infile.arg_len = strlen(argv[i]+6);
 				ctx->core_infile.argument = malloc(ctx->core_infile.arg_len+1);
-				memcpy(ctx->core_infile.argument,argv[i]+5,ctx->core_infile.arg_len+1);
+				memcpy(ctx->core_infile.argument,argv[i]+6,ctx->core_infile.arg_len+1);
 				ctx->core_infile.file.file = fopen(ctx->core_infile.argument,"rb");
 				if(ctx->core_infile.file.file == NULL){
 					printf("[!] Failed to open content0: %s\n",ctx->core_infile.argument);
@@ -259,12 +265,12 @@ int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
 	}
 	else if(ctx->build_mode == rom_conv){
 		for(int i = 1; i < argc; i++){
-			if(strncmp(argv[i],"-rom=",5) == 0){
+			if(strncmp(argv[i],"--rom=",6) == 0){
 				ctx->core_infile.used = True;
 				ctx->core_infile.file.used = True;
-				ctx->core_infile.arg_len = strlen(argv[i]+5);
+				ctx->core_infile.arg_len = strlen(argv[i]+6);
 				ctx->core_infile.argument = malloc(ctx->core_infile.arg_len+1);
-				memcpy(ctx->core_infile.argument,argv[i]+5,ctx->core_infile.arg_len+1);
+				memcpy(ctx->core_infile.argument,argv[i]+6,ctx->core_infile.arg_len+1);
 				ctx->core_infile.file.file = fopen(ctx->core_infile.argument,"rb");
 				if(ctx->core_infile.file.file == NULL){
 					printf("[!] Failed to open ROM: %s\n",ctx->core_infile.argument);
@@ -312,10 +318,10 @@ int SetBooleanSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 	ctx->build_mode = False;
 	*/
 	for(int i = 1; i < argc; i++){
-		if(strncmp(argv[i],"--encrypt",9) == 0){
+		if(strncmp(argv[i],"-e",2) == 0 || strncmp(argv[i],"--encrypt",9) == 0){
 			ctx->encrypt_contents = True;
 		}
-		else if(strncmp(argv[i],"-rand",5) == 0){
+		else if(strncmp(argv[i],"--rand",6) == 0){
 			ctx->rand_titlekey = True;
 		}
 		else if(strncmp(argv[i],"-k",2) == 0 || strncmp(argv[i],"--showkeys",10) == 0){
@@ -324,13 +330,13 @@ int SetBooleanSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 		else if(strncmp(argv[i],"-v",2) == 0 || strncmp(argv[i],"--verbose",9) == 0){
 			ctx->verbose_flag = True;
 		}
-		else if(strncmp(argv[i],"-content0=",10) == 0){
+		else if(strncmp(argv[i],"--content0=",11) == 0){
 			ctx->build_mode = ctr_norm;
 		}
-		else if(strncmp(argv[i],"-srl=",5) == 0){
+		else if(strncmp(argv[i],"--srl=",6) == 0){
 			ctx->build_mode = twl_cia;
 		}
-		else if(strncmp(argv[i],"-rom=",5) == 0){
+		else if(strncmp(argv[i],"--rom=",6) == 0){
 			ctx->build_mode = rom_conv;
 		}
 	}
@@ -363,29 +369,29 @@ int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 	
 	//Importing user's keys
 	for(int i = 1; i < argc; i++){
-		if(strncmp(argv[i],"-cxikey=",8) == 0){
-			if(strlen(argv[i]+6) == 32)
-				char_to_int_array(ctx->keys.ncch_key.key,argv[i]+6,16,BE,16);
+		if(strncmp(argv[i],"--cxikey=",9) == 0){
+			if(strlen(argv[i]+9) == 32)
+				char_to_int_array(ctx->keys.ncch_key.key,argv[i]+9,16,BE,16);
 			else
 				printf("[!] Invalid Size for CXI key\n");
 		}
-		else if(strncmp(argv[i],"-titlekey=",10) == 0){
-			if(strlen(argv[i]+6) == 32)
-				char_to_int_array(ctx->keys.title_key.key,argv[i]+6,16,BE,16);
+		else if(strncmp(argv[i],"--titlekey=",11) == 0){
+			if(strlen(argv[i]+11) == 32)
+				char_to_int_array(ctx->keys.title_key.key,argv[i]+11,16,BE,16);
 			else
 				printf("[!] Invalid Size for title key\n");
 		}
-		else if(strncmp(argv[i],"-ckey=",6) == 0){
-			if(strlen(argv[i]+6) == 32)
-				char_to_int_array(ctx->keys.common_key.key,argv[i]+6,16,BE,16);
+		else if(strncmp(argv[i],"--ckey=",7) == 0){
+			if(strlen(argv[i]+7) == 32)
+				char_to_int_array(ctx->keys.common_key.key,argv[i]+7,16,BE,16);
 			else
 				printf("[!] Invalid Size for common key\n");
 		}
-		else if(strncmp(argv[i],"-ckeyID=",8) == 0){
-			ctx->keys.common_key_id = strtol(argv[i]+8,NULL,10);
+		else if(strncmp(argv[i],"--ckeyID=",9) == 0){
+			ctx->keys.common_key_id = strtol(argv[i]+9,NULL,10);
 		}
-		else if(strncmp(argv[i],"-tmdkey=",8) == 0){
-			FILE *tmd_key = fopen(argv[i]+8,"rb");
+		else if(strncmp(argv[i],"--tmdkey=",9) == 0){
+			FILE *tmd_key = fopen(argv[i]+9,"rb");
 			if(tmd_key != NULL){
 				if(LoadRSAKeyFile(&ctx->keys.tmd,tmd_key) == 0)
 					SetTitleMetaDataIssuer(ctx);
@@ -394,11 +400,11 @@ int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 				fclose(tmd_key);
 			}
 			else
-				printf("[!] Could not open, %s\n",argv[i]+8);
+				printf("[!] Could not open, %s\n",argv[i]+9);
 			
 		}
-		else if(strncmp(argv[i],"-tikkey=",8) == 0){
-			FILE *tik_key = fopen(argv[i]+8,"rb");
+		else if(strncmp(argv[i],"--tikkey=",9) == 0){
+			FILE *tik_key = fopen(argv[i]+9,"rb");
 			if(tik_key != NULL){
 				if(LoadRSAKeyFile(&ctx->keys.ticket,tik_key) == 0)
 					SetTicketIssuer(ctx);
@@ -407,11 +413,11 @@ int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 				fclose(tik_key);
 			}
 			else
-				printf("[!] Could not open, %s\n",argv[i]+8);
+				printf("[!] Could not open, %s\n",argv[i]+9);
 			
 		}
-		else if(strncmp(argv[i],"-romkey=",8) == 0){
-			FILE *rom_key = fopen(argv[i]+8,"rb");
+		else if(strncmp(argv[i],"--romkey=",9) == 0){
+			FILE *rom_key = fopen(argv[i]+9,"rb");
 			if(rom_key != NULL){
 				if(LoadRSAKeyFile(&ctx->keys.NcsdCfa,rom_key) != 0){
 					printf("[!] NCSD Key file Error\n");
@@ -419,11 +425,11 @@ int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 				fclose(rom_key);					
 			}
 			else
-				printf("[!] Could not open, %s\n",argv[i]+8);
+				printf("[!] Could not open, %s\n",argv[i]+9);
 			
 		}
-		else if(strncmp(argv[i],"-certs=",7) == 0){
-			FILE *certs = fopen(argv[i]+7,"rb");
+		else if(strncmp(argv[i],"--certs=",8) == 0){
+			FILE *certs = fopen(argv[i]+8,"rb");
 			if(certs != NULL){
 				ctx->certchain.used = True;
 				ctx->certchain.size = GetFileSize_u32(certs);
@@ -432,7 +438,7 @@ int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 				fclose(certs);
 			}
 			else
-				printf("[!] Could not open, %s\n",argv[i]+6);
+				printf("[!] Could not open, %s\n",argv[i]+8);
 		}
 	}
 	if(ctx->certchain.used != True){
@@ -461,44 +467,84 @@ int SetBuildSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 	memset(&tmdverdata,0,3);
 	memset(&tikverdata,0,3);
 	for(int i = 1; i < argc; i++){
-		if(strncmp(argv[i],"-tikID=",7) == 0){
-			if(strlen(argv[i]+7) == 16)
-				char_to_int_array(ctx->core.TicketID,argv[i]+7,0x8,BE,16);
+		if(strncmp(argv[i],"--tikID=",8) == 0){
+			if(strlen(argv[i]+8) == 16)
+				char_to_int_array(ctx->core.TicketID,argv[i]+8,0x8,BE,16);
 			else
 				printf("[!] Invalid length for Ticket ID\n");
 		}
-		else if(strncmp(argv[i],"-savesize=",10) == 0){
-			u32 savesize = strtol(argv[i]+10, NULL, 10)*1024;
+		else if(strncmp(argv[i],"--savesize=",11) == 0){
+			u32 savesize = strtol(argv[i]+11, NULL, 10)*1024;
 			u32_to_u8(ctx->core.save_data_size,savesize,LE);
 		}
-		else if(strncmp(argv[i],"-titleID=",9) == 0){
-			if(strlen(argv[i]+9) == 16)
-				char_to_int_array(ctx->core.TitleID,argv[i]+9,0x8,BE,16);
+		else if(strncmp(argv[i],"--titleID=",10) == 0){
+			if(strlen(argv[i]+10) == 16)
+				char_to_int_array(ctx->core.TitleID,argv[i]+10,0x8,BE,16);
 			else
 				printf("[!] Invalid length for Ticket ID\n");
 		}
-		else if(strncmp(argv[i],"-major=",7) == 0){
-			tmdverdata[0] = strtol(argv[i]+7, NULL, 10);
+		else if(strncmp(argv[i],"--major=",8) == 0){
+			tmdverdata[0] = strtol(argv[i]+8, NULL, 10);
 			vermod[0] = True;
 		}
-		else if(strncmp(argv[i],"-minor=",7) == 0){
-			tmdverdata[1] = strtol(argv[i]+7, NULL, 10);
+		else if(strncmp(argv[i],"--minor=",8) == 0){
+			tmdverdata[1] = strtol(argv[i]+8, NULL, 10);
 			vermod[0] = True;
 		}
-		else if(strncmp(argv[i],"-micro=",7) == 0){
-			tmdverdata[2] = strtol(argv[i]+7, NULL, 10);
+		else if(strncmp(argv[i],"--micro=",8) == 0){
+			tmdverdata[2] = strtol(argv[i]+8, NULL, 10);
 			vermod[0] = True;
 		}
-		else if(strncmp(argv[i],"-tikmajor=",10) == 0){
-			tikverdata[0] = strtol(argv[i]+10, NULL, 10);
+		else if(strncmp(argv[i],"--tikmajor=",11) == 0){
+			tikverdata[0] = strtol(argv[i]+11, NULL, 10);
 			vermod[1] = True;
 		}
-		else if(strncmp(argv[i],"-tikminor=",10) == 0){
-			tikverdata[1] = strtol(argv[i]+10, NULL, 10);
+		else if(strncmp(argv[i],"--tikminor=",11) == 0){
+			tikverdata[1] = strtol(argv[i]+11, NULL, 10);
 			vermod[1] = True;
 		}
-		else if(strncmp(argv[i],"-tikmicro=",10) == 0){
-			tikverdata[2] = strtol(argv[i]+10, NULL, 10);
+		else if(strncmp(argv[i],"--tikmicro=",11) == 0){
+			tikverdata[2] = strtol(argv[i]+11, NULL, 10);
+			vermod[1] = True;
+		}
+		else if(strncmp(argv[i],"-1",2) == 0){
+			if(strlen(argv[i+1]) == 16)
+				char_to_int_array(ctx->core.TicketID,argv[i+1],0x8,BE,16);
+			else
+				printf("[!] Invalid length for Ticket ID\n");
+		}
+		else if(strncmp(argv[i],"-0",2) == 0){
+			u32 savesize = strtol(argv[i+1], NULL, 10)*1024;
+			u32_to_u8(ctx->core.save_data_size,savesize,LE);
+		}
+		else if(strncmp(argv[i],"-2",2) == 0){
+			if(strlen(argv[i+1]) == 16)
+				char_to_int_array(ctx->core.TitleID,argv[i+1],0x8,BE,16);
+			else
+				printf("[!] Invalid length for Ticket ID\n");
+		}
+		else if(strncmp(argv[i],"-3",2) == 0){
+			tmdverdata[0] = strtol(argv[i+1], NULL, 10);
+			vermod[0] = True;
+		}
+		else if(strncmp(argv[i],"-4",2) == 0){
+			tmdverdata[1] = strtol(argv[i+1], NULL, 10);
+			vermod[0] = True;
+		}
+		else if(strncmp(argv[i],"-5",2) == 0){
+			tmdverdata[2] = strtol(argv[i+1], NULL, 10);
+			vermod[0] = True;
+		}
+		else if(strncmp(argv[i],"-6",2) == 0){
+			tikverdata[0] = strtol(argv[i+1], NULL, 10);
+			vermod[1] = True;
+		}
+		else if(strncmp(argv[i],"-7",2) == 0){
+			tikverdata[1] = strtol(argv[i+1], NULL, 10);
+			vermod[1] = True;
+		}
+		else if(strncmp(argv[i],"-8",2) == 0){
+			tikverdata[2] = strtol(argv[i+1], NULL, 10);
 			vermod[1] = True;
 		}
 	}

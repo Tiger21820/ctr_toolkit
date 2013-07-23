@@ -9,7 +9,7 @@
 typedef enum
 {
 	MAJOR = 5,
-	MINOR = 0
+	MINOR = 1
 } AppVer;
 
 void app_title(void);
@@ -130,35 +130,35 @@ void help(char *app_name)
 	printf(" -h, --help                                   Print this help.\n");
 	printf(" -v, --verbose                                Enable verbose output.\n");
 	printf(" -k, --showkeys                               Show the keys being used.\n");
-	printf("     --encrypt                                Globally Encrypt CIA Contents\n");
-	printf(" -out=                  File-out              CIA Output\n");
+	printf(" -e, --encrypt                                Globally Encrypt CIA Contents\n");
+	printf(" -o, --out=             File-out              CIA Output\n");
 	printf("CONTENT OPTIONS\n");
-	printf(" -contentX=             File-in               Content X path\n");
-	printf(" -id_X=                 Value                 Content X ID\n");
-	printf(" -index_X=              Value                 Content X Index\n");
-	printf(" -encrypt_X                                   Encrypt Content X\n");
-	printf(" -optional_X                                  Flag Content X as 'Optional'\n");
-	printf(" -shared_X                                    Flag Content X as 'Shared'\n");
+	printf(" --contentX=            File-in               Content X path\n");
+	printf(" --id_X=                Value                 Content X ID\n");
+	printf(" --index_X=             Value                 Content X Index\n");
+	printf(" --crypt_X                                    Encrypt Content X\n");
+	printf(" --optional_X                                 Flag Content X as 'Optional'\n");
+	printf(" --shared_X                                   Flag Content X as 'Shared'\n");
 	printf("EXTRA OPTIONS\n");
-	printf(" -savesize=             Value                 Savedata Size in KB\n");
-	printf(" -tikID=                Value                 Ticket ID\n");
-	printf(" -titleID=              Value                 Title ID\n");
-	printf(" -major=                Value                 TMD Version Major\n");
-	printf(" -minor=                Value                 TMD Version Minor\n");
-	printf(" -micro=                Value                 TMD Version Micro\n");
-	printf(" -tikmajor=             Value                 TIK Version Major\n");
-	printf(" -tikminor=             Value                 TIK Version Minor\n");
-	printf(" -tikmicro=             Value                 TIK Version Micro\n");
+	printf(" -0, --savesize=        Value                 Savedata Size in KB\n");
+	printf(" -1, --tikID=           Value                 Ticket ID\n");
+	printf(" -2, --titleID=         Value                 Title ID\n");
+	printf(" -3, --major=           Value                 TMD Version Major\n");
+	printf(" -4, --minor=           Value                 TMD Version Minor\n");
+	printf(" -5, --micro=           Value                 TMD Version Micro\n");
+	printf(" -6, --tikmajor=        Value                 TIK Version Major\n");
+	printf(" -7, --tikminor=        Value                 TIK Version Minor\n");
+	printf(" -8, --tikmicro=        Value                 TIK Version Micro\n");
 	printf("CRYPTOGRAPHY OPTIONS\n");
-	printf(" -ckey=                 Value                 Common Key\n");
-	printf(" -ckeyID=               Value                 Common Key ID\n");
-	printf(" -cxikey=               Value                 CXI Key\n");
-	printf(" -titlekey=             Value                 Title Key\n");
-	printf(" -rand                                        Use a Random Title Key\n");
-	printf(" -tmdkey=               File-in               TMD RSA Keyfile\n");
-	printf(" -tikkey=               File-in               TIK RSA Keyfile\n");
-	printf(" -certs=                File-in               Certificate Chain File\n");
+	printf(" --ckey=                Value                 Common Key\n");
+	printf(" --ckeyID=              Value                 Common Key ID\n");
+	printf(" --cxikey=              Value                 CXI Key\n");
+	printf(" --titlekey=            Value                 Title Key\n");
+	printf(" --rand                                       Use a Random Title Key\n");
+	printf(" --tmdkey=              File-in               TMD RSA Keyfile\n");
+	printf(" --tikkey=              File-in               TIK RSA Keyfile\n");
+	printf(" --certs=               File-in               Certificate Chain File\n");
 	printf("SPECIAL BUILD OPTIONS\n");
-	printf(" -srl=                  File-in               Specify a SRL for content0.\n");
-	printf(" -rom=                  File-in               Convert ROM to CIA.\n");
+	printf(" --srl=                 File-in               Specify a SRL for content0.\n");
+	printf(" --rom=                 File-in               Convert ROM to CIA.\n");
 }
