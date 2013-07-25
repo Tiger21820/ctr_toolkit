@@ -36,7 +36,7 @@ typedef struct
 	u8 title_type[4];
 	u8 group_id[2];
 	u8 save_data_size[4];
-	u8 unknown_data_0[4];
+	u8 priv_save_data_size[4];
 	u8 reserved_0[2];
 	u8 twl_data[4];
 	u8 reserved[0x30];

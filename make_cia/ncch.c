@@ -46,7 +46,7 @@ int GetCoreContentNCCH(CIA_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, FI
 	u16 ver = (u8_to_u16(ExHeader+0xe,LE)*4);
 	u16_to_u8(core->TitleVersion,ver,LE);
 	memcpy(core->save_data_size,ExHeader+0x1c0,4);
-	memset(core->unknown_data_0,0,4);
+	memset(core->priv_save_data_size,0,4);
 	memset(core->twl_data,0,4);
 	
 cleanup:
@@ -213,7 +213,7 @@ int GetCXIIcon(COMPONENT_STRUCT *cxi_icon, NCCH_STRUCT *cxi_ctx, CIA_CONTEXT *ct
 	
 	u32 icon_offset;
 	u32 icon_size;
-	for(int i = 0; i < 8; i++){
+	for(int i = 0; i < 10; i++){
 		u32 headernameoffset = (i * 0x10);
 		u32 headeroffsetoffset = ((i * 0x10) + 8);
 		u32 headersizeoffset = ((i * 0x10) + 8 + 4);
@@ -222,7 +222,7 @@ int GetCXIIcon(COMPONENT_STRUCT *cxi_icon, NCCH_STRUCT *cxi_ctx, CIA_CONTEXT *ct
 			icon_size = u8_to_u32((exefs+headersizeoffset),LE);
 			break;
 		}
-		if(i == 7){
+		if(i == 9){
 			printf("[+] CXI has no Icon\n");
 			free(exefs);
 			return 0;
