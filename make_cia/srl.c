@@ -13,7 +13,7 @@ int GetCoreContentSRL(CORE_CONTENT_INFO *core,FILE *srl)
 	fseek(srl,0x236,SEEK_SET);
 	fread(&tid_platform,0x2,1,srl);
 	if(tid_platform != 0x0003){
-		printf("[!] Is not a valid TWL file\n");
+		printf("[!] Is not a valid TWL SRL file\n");
 		return 1;
 	}
 	
@@ -31,8 +31,8 @@ int GetCoreContentSRL(CORE_CONTENT_INFO *core,FILE *srl)
 	u16 ver = (u8_to_u16(header.rom_version,LE)*4);
 	
 	u16_to_u8(core->TitleVersion,ver,BE);
-	memcpy(core->save_data_size,header.save_data_size,4);
-	memcpy(core->unknown_data_0,header.unknown_data,4);
+	memcpy(core->save_data_size,header.pub_save_data_size,4);
+	memcpy(core->priv_save_data_size,header.priv_save_data_size,4);
 	
 	return 0;
 }

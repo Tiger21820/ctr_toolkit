@@ -72,8 +72,8 @@ typedef struct
 	u8 modcrypt_area_2_offset[4];
 	u8 modcrypt_area_2_size[4];
 	u8 title_id[8];
-	u8 save_data_size[4];
-	u8 unknown_data[4];
+	u8 pub_save_data_size[4];
+	u8 priv_save_data_size[4];
 	u8 reserved_4[0xC0];
 	
 	// TWL and Signed NTR

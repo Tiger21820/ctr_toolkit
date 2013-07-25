@@ -87,7 +87,7 @@ int WriteExtDataFiles(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 			return 1;
 		}		
 		if(ExportExdataImagetoFile(extdata,outfile) != 0){
-			printf("Failed to Extract '%s' to '%s'\n",inpath,outpath);
+			printf("[!] Failed to Extract '%s' to '%s'\n",inpath,outpath);
 			return 1;
 		}
 		fclose(extdata);
@@ -100,54 +100,16 @@ int WriteExtDataFiles(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 
 int ExportExdataImagetoFile(FILE *extdata, FILE *outfile)
 {
-	EXTDATA_HEADER_CONTEXT header;
-	PARTITION_STRUCT partition[2];
+	EXTDATA_CONTEXT ctx;
 	
-	memset(&header,0,sizeof(header));
-	
-	//Reading DIFF
-	fseek(extdata, 0x100, SEEK_SET);
-	fread(&header.DIFF,sizeof(DIFF_STRUCT),1,extdata);
-	if(header.DIFF.magic_0 == DISA_MAGIC){
-		printf("[!] This is a SaveData Image\n");
-		return DIFF_CORRUPT;
-	}
-	else if(header.DIFF.magic_0 != DIFF_MAGIC_0 || header.DIFF.magic_1 != DIFF_MAGIC_1){
-		printf("[!] DIFF Header Corrupt\n");
-		return DIFF_CORRUPT;
-	}
-	//Reading ExtData HMAC
-	fseek(extdata, 0x00, SEEK_SET);
-	fread(header.AES_MAC,0x10,1,extdata);
-	
-	if(header.DIFF.primary_partition_offset != 0){
-		partition[primary] = get_extdata_partition_header(header.DIFF.primary_partition_offset, header.DIFF.active_table_offset, extdata);
-		if(partition[primary].valid != 0){
-			printf("[!] Primary DIFI Partition Corrupt\n");
-			return DIFI_CORRUPT;
-		}
-	}
-	else{
-		printf("[!] ExtData Image is Empty\n");
-		return DIFI_CORRUPT;
-	}
-	
-	if(header.DIFF.secondary_partition_offset != 0){
-		partition[secondary] = get_extdata_partition_header(header.DIFF.secondary_partition_offset, header.DIFF.active_table_offset, extdata);
-		if(partition[secondary].valid != 0){
-			printf("[!] Secondary DIFI Partition Corrupt\n");
-			return DIFI_CORRUPT;
-		}
-	}
-	else{
-		printf("[+] No Secondary Partition Present\n");
-	}
-	
-	if(partition[primary].DIFI.flags[0] != 1)
+	if(GetExtDataContext(&ctx,extdata) != 0)
 		return 1;
 	
-	u64 offset = partition[primary].DIFI.data_partition_offset + partition[primary].DPFS.ivfc_offset;
-	u64 size = partition[primary].IVFC.level_4_fs_size;
+	if(ctx.partition[primary].DIFI.flags[0] != 1)
+		return UNEXPECTED_MULTIPLE_DATA_IN_EXTDATA;
+	
+	u64 offset = ctx.partition[primary].DIFI.data_partition_offset + ctx.partition[primary].DPFS.ivfc_offset;
+	u64 size = ctx.partition[primary].IVFC.level_4_fs_size;
 	
 	u8 *buffer = malloc(size);
 	
@@ -165,7 +127,7 @@ int ExportExdataImagetoFile(FILE *extdata, FILE *outfile)
 int GetVSXEContext(VSXE_CONTEXT *vsxe, INPUT_CONTEXT *ctx)
 {
 	vsxe->extdata = ctx->extdataimg;
-	vsxe->offset = (ctx->header.DIFF.active_table_offset + ctx->partition[primary].IVFC.level_4_fs_relative_offset + ctx->partition[primary].DPFS.ivfc_offset);
+	vsxe->offset = (ctx->data.header.DIFF.active_table_offset + ctx->data.partition[primary].IVFC.level_4_fs_relative_offset + ctx->data.partition[primary].DPFS.ivfc_offset);
 	
 	fseek(vsxe->extdata,vsxe->offset,SEEK_SET);
 	fread(&vsxe->header,sizeof(vsxe_header),1,vsxe->extdata);

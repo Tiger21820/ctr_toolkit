@@ -213,7 +213,7 @@ int GetCXIIcon(COMPONENT_STRUCT *cxi_icon, NCCH_STRUCT *cxi_ctx, CIA_CONTEXT *ct
 	
 	u32 icon_offset;
 	u32 icon_size;
-	for(int i = 0; i < 8; i++){
+	for(int i = 0; i < 10; i++){
 		u32 headernameoffset = (i * 0x10);
 		u32 headeroffsetoffset = ((i * 0x10) + 8);
 		u32 headersizeoffset = ((i * 0x10) + 8 + 4);
@@ -222,7 +222,7 @@ int GetCXIIcon(COMPONENT_STRUCT *cxi_icon, NCCH_STRUCT *cxi_ctx, CIA_CONTEXT *ct
 			icon_size = u8_to_u32((exefs+headersizeoffset),LE);
 			break;
 		}
-		if(i == 7){
+		if(i == 9){
 			printf("[+] CXI has no Icon\n");
 			free(exefs);
 			return 0;

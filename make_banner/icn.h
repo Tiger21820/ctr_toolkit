@@ -68,7 +68,7 @@ ICN_APP_TITLE_STRUCT; //Application Title Name Structure
 
 typedef struct
 {
-	ICN_APP_TITLE_STRUCT title_array[0x10];
+	ICN_APP_TITLE_STRUCT title_array[16];
 	// 0 = Japanese
 	// 1 = English
 	// 2 = French
@@ -90,7 +90,7 @@ ICN_APP_TITLES;
 
 typedef struct
 {
-	u8 rating[0x10];
+	u8 rating[16];
 	// 0 = CERO (Japan)
 	// 1 = ESRB (USA)
 	// 2 = RSV
@@ -116,11 +116,10 @@ typedef struct
 	u8 region_lock[4];
 	u8 match_maker_id[4];
 	u8 match_maker_bit_id[8];
-	u8 byte_flag[2];
-	u8 reserved_0[2];
+	u8 byte_flag[4];
 	u8 eula_minor;
 	u8 eula_major;
-	u8 reserved_1[2];
+	u8 reserved_0[2];
 	u8 optimal_bnr_frame[4];
 	u8 cec_id[4];
 } __attribute__((__packed__)) 

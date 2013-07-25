@@ -19,6 +19,50 @@ along with extdata_tool.  If not, see <http://www.gnu.org/licenses/>.
 #include "lib.h"
 #include "ExtData.h"
 
+int GetExtDataContext(EXTDATA_CONTEXT *ctx, FILE *extdataimg)
+{
+	memset(ctx,0,sizeof(EXTDATA_CONTEXT));
+	
+	//Reading DIFF
+	fseek(extdataimg, 0x100, SEEK_SET);
+	fread(&ctx->header.DIFF,sizeof(DIFF_STRUCT),1,extdataimg);
+	if(ctx->header.DIFF.magic_0 == DISA_MAGIC){
+		printf("[!] This is a SaveData Image\n");
+		return DIFF_CORRUPT;
+	}
+	else if(ctx->header.DIFF.magic_0 != DIFF_MAGIC_0 || ctx->header.DIFF.magic_1 != DIFF_MAGIC_1){
+		printf("[!] DIFF Header Corrupt\n");
+		return DIFF_CORRUPT;
+	}
+	//Reading ExtData AES MAC
+	fseek(extdataimg, 0x00, SEEK_SET);
+	fread(&ctx->header.AES_MAC,0x10,1,extdataimg);
+	
+	if(ctx->header.DIFF.primary_partition_offset != 0){
+		ctx->partition[primary] = get_extdata_partition_header(ctx->header.DIFF.primary_partition_offset, ctx->header.DIFF.active_table_offset, extdataimg);
+		if(ctx->partition[primary].valid != 0){
+			printf("[!] Primary DIFI Partition Corrupt\n");
+			return DIFI_CORRUPT;
+		}
+	}
+	else{
+		printf("[!] ExtData Image is Empty\n");
+		return DIFI_CORRUPT;
+	}
+	
+	if(ctx->header.DIFF.secondary_partition_offset != 0){
+		ctx->partition[secondary] = get_extdata_partition_header(ctx->header.DIFF.secondary_partition_offset, ctx->header.DIFF.active_table_offset, extdataimg);
+		if(ctx->partition[secondary].valid != 0){
+			printf("[!] Secondary DIFI Partition Corrupt\n");
+			return DIFI_CORRUPT;
+		}
+	}
+	else{
+		printf("[+] No Secondary Partition Present\n");
+	}
+	return 0;
+}
+
 void print_extdata_header(EXTDATA_HEADER_CONTEXT header)
 {
 	printf("\n[+] ExtData Image Header\n");
@@ -60,8 +104,8 @@ void print_DIFI(PARTITION_STRUCT partition)
 	printf(" > Adjusted Offset:         0x%llx\n",partition.DIFI.dpfs_blob_offset + partition.DIFI_offset);
 	printf(" > Size:                    0x%llx\n",partition.DIFI.dpfs_blob_size);
 	//printf("Hash Blob:\n");
-	//printf(" > Offset:                  0x%x\n",partition.DIFI.hash_offset + partition.DIFI_offset);
-	//printf(" > Size:                    0x%x\n",partition.DIFI.hash_size);
+	//printf(" > Offset:                  0x%llx\n",partition.DIFI.hash_offset + partition.DIFI_offset);
+	//printf(" > Size:                    0x%llx\n",partition.DIFI.hash_size);
 	printf("Flags:                      0x");
 	u8_hex_print_be(partition.DIFI.flags, 0x4);
 	putchar('\n');

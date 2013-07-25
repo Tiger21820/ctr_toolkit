@@ -257,7 +257,7 @@ typedef struct
 	char TMDIssuer[0x40];
 	u8 tmd_format_ver;
 	u8 save_data_size[4];
-	u8 unknown_data_0[4];
+	u8 priv_save_data_size[4];
 	u8 twl_data[4];
 } __attribute__((__packed__)) 
 CORE_CONTENT_INFO;

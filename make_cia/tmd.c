@@ -76,7 +76,7 @@ void SetTMDHeader(TMD_STRUCT *header,CIA_CONTEXT *ctx)
 	memcpy(header->title_type,ctx->core.Title_type,0x4);
 	//Access Rights...
 	memcpy(header->save_data_size,ctx->core.save_data_size,0x4);
-	memcpy(header->unknown_data_0,ctx->core.unknown_data_0,0x4);
+	memcpy(header->priv_save_data_size,ctx->core.priv_save_data_size,0x4);
 	memcpy(header->twl_data,ctx->core.twl_data,0x4);
 	memcpy(header->title_version,ctx->core.TitleVersion,0x2);
 	u16_to_u8(header->content_count,ctx->ContentCount,BE);

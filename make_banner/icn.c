@@ -131,7 +131,7 @@ int icn_title_proccess(ICN_CONTEXT icn)
     return 0;
 }
 
-int icn_settings_proccess(ICN_CONTEXT icn)
+int icn_settings_proccess(ICN_CONTEXT *icn)
 {
 	/** Creating Buffer **/	
 	u8 buff[100];
