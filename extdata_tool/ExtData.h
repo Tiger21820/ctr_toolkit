@@ -25,28 +25,24 @@ typedef enum
 	DIFF_MAGIC_0 = 0x46464944,
 	DIFF_MAGIC_1 = 0x30000,
 	DISA_MAGIC = 0x41534944,
-	DIFF_CORRUPT = 10
 } DIFF_data;
 
 typedef enum
 {
 	DIFI_MAGIC_0 = 0x49464944,
 	DIFI_MAGIC_1 = 0x10000,
-	DIFI_CORRUPT = 11
 } DIFI_data;
 
 typedef enum
 {
 	IVFC_MAGIC_0 = 0x43465649,
 	IVFC_MAGIC_1 = 0x20000,
-	IVFC_CORRUPT = 12,
 } IVFC_data;
 
 typedef enum
 {
 	DPFS_MAGIC_0 = 0x53465044,
 	DPFS_MAGIC_1 = 0x10000,
-	DPFS_CORRUPT = 13,
 } DPFS_data;
 
 typedef enum
@@ -54,6 +50,15 @@ typedef enum
 	PRIMARY,
 	SECONDARY
 } partition;
+
+typedef enum
+{
+	DIFF_CORRUPT = 10,
+	DIFI_CORRUPT = 11,
+	IVFC_CORRUPT = 12,
+	DPFS_CORRUPT = 13,
+	UNEXPECTED_MULTIPLE_DATA_IN_EXTDATA = 14,
+} extdata_errors;
 
 typedef struct
 {
@@ -67,8 +72,7 @@ typedef struct
 	u8 reserved_0[0x4];
 	u8 active_table_hash[0x20];
 	u8 reserved_1[0xAC];
-} __attribute__((__packed__)) 
-DIFF_STRUCT;
+} DIFF_STRUCT;
 
 typedef struct
 {
@@ -82,8 +86,7 @@ typedef struct
 	u64 hash_size;
 	u8 flags[4];
 	u64 data_partition_offset;
-} __attribute__((__packed__)) 
-DIFI_STRUCT;
+} DIFI_STRUCT;
 
 typedef struct
 {
@@ -106,8 +109,7 @@ typedef struct
 	u64 level_4_fs_size;
 	u64 level_4_fs_block_size;
 	u64 unknown_0;
-} __attribute__((__packed__)) 
-IVFC_STRUCT;
+} IVFC_STRUCT;
 
 typedef struct
 {
@@ -122,15 +124,13 @@ typedef struct
 	u64 ivfc_offset;
 	u64 ivfc_length;
 	u64 ivfc_block_size;
-} __attribute__((__packed__)) 
-DPFS_STRUCT;
+} DPFS_STRUCT;
 
 typedef struct
 {
 	u8 AES_MAC[0x10];
 	DIFF_STRUCT DIFF;
-} __attribute__((__packed__)) 
-EXTDATA_HEADER_CONTEXT;
+} EXTDATA_HEADER_CONTEXT;
 
 typedef struct
 {
@@ -141,9 +141,15 @@ typedef struct
 	u8 DIFI_HASH[0x20];
 	IVFC_STRUCT IVFC;
 	DPFS_STRUCT DPFS;
-} __attribute__((__packed__)) 
-PARTITION_STRUCT;
+} PARTITION_STRUCT;
 
+typedef struct
+{
+	EXTDATA_HEADER_CONTEXT header;
+	PARTITION_STRUCT partition[2];
+} EXTDATA_CONTEXT;
+
+int GetExtDataContext(EXTDATA_CONTEXT *ctx, FILE *extdataimg);
 
 void print_extdata_header(EXTDATA_HEADER_CONTEXT header);
 void print_partition_info(PARTITION_STRUCT partition);

@@ -85,7 +85,6 @@ typedef struct
 	u8 mode;
 	char *extdataimg_path;
 	FILE *extdataimg;
-	EXTDATA_HEADER_CONTEXT header;
-	PARTITION_STRUCT partition[2];	
+	EXTDATA_CONTEXT data;
 } INPUT_CONTEXT;
 

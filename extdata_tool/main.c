@@ -126,56 +126,16 @@ int main(int argc, char *argv[])
 			ctx.listdb = True;
 		}
 	}
-
-	EXTDATA_HEADER_CONTEXT header;
 	
-	memset(&ctx.header,0,sizeof(header));
-	
-	//Reading DIFF
-	fseek(ctx.extdataimg, 0x100, SEEK_SET);
-	fread(&ctx.header.DIFF,sizeof(DIFF_STRUCT),1,ctx.extdataimg);
-	if(ctx.header.DIFF.magic_0 == DISA_MAGIC){
-		printf("[!] This is a SaveData Image\n");
-		return DIFF_CORRUPT;
-	}
-	else if(ctx.header.DIFF.magic_0 != DIFF_MAGIC_0 || ctx.header.DIFF.magic_1 != DIFF_MAGIC_1){
-		printf("[!] DIFF Header Corrupt\n");
-		return DIFF_CORRUPT;
-	}
-	//Reading ExtData HMAC
-	fseek(ctx.extdataimg, 0x00, SEEK_SET);
-	fread(ctx.header.AES_MAC,0x10,1,ctx.extdataimg);
-	
-	if(ctx.header.DIFF.primary_partition_offset != 0){
-		ctx.partition[primary] = get_extdata_partition_header(ctx.header.DIFF.primary_partition_offset, ctx.header.DIFF.active_table_offset, ctx.extdataimg);
-		if(ctx.partition[primary].valid != 0){
-			printf("[!] Primary DIFI Partition Corrupt\n");
-			return DIFI_CORRUPT;
-		}
-	}
-	else{
-		printf("[!] ExtData Image is Empty\n");
-		return DIFI_CORRUPT;
-	}
-	
-	if(ctx.header.DIFF.secondary_partition_offset != 0){
-		ctx.partition[secondary] = get_extdata_partition_header(ctx.header.DIFF.secondary_partition_offset, ctx.header.DIFF.active_table_offset, ctx.extdataimg);
-		if(ctx.partition[secondary].valid != 0){
-			printf("[!] Secondary DIFI Partition Corrupt\n");
-			return DIFI_CORRUPT;
-		}
-	}
-	else{
-		printf("[+] No Secondary Partition Present\n");
-	}
-	
+	//ctx.extdataimg
+	GetExtDataContext(&ctx.data,ctx.extdataimg);
 	//Performing Functions Now
 	
 	if(ctx.info == True){
-		print_extdata_header(ctx.header);
-		print_partition_info(ctx.partition[primary]);
-		if(header.DIFF.secondary_partition_offset != 0){
-			print_partition_info(ctx.partition[secondary]);
+		print_extdata_header(ctx.data.header);
+		print_partition_info(ctx.data.partition[primary]);
+		if(ctx.data.header.DIFF.secondary_partition_offset != 0){
+			print_partition_info(ctx.data.partition[secondary]);
 		}
 	}
 	
@@ -187,9 +147,9 @@ int main(int argc, char *argv[])
 		int db_mode = Normal;
 		if(ctx.listdb == True)
 			db_mode = ByTID;
-		if(ProcessTitleDB(ctx.extdataimg, db_mode,(ctx.header.DIFF.active_table_offset + ctx.partition[primary].IVFC.level_4_fs_relative_offset + ctx.partition[primary].DPFS.ivfc_offset)) != 0){
-			if(ctx.partition[primary].DIFI.flags[0] == 0x0){
-				if(ProcessTitleDB(ctx.extdataimg, db_mode,(ctx.header.DIFF.active_table_offset + ctx.partition[primary].DPFS.ivfc_length + ctx.partition[secondary].DPFS.ivfc_offset + ctx.partition[primary].IVFC.level_4_fs_relative_offset)) != 0){
+		if(ProcessTitleDB(ctx.extdataimg, db_mode,(ctx.data.header.DIFF.active_table_offset + ctx.data.partition[primary].IVFC.level_4_fs_relative_offset + ctx.data.partition[primary].DPFS.ivfc_offset)) != 0){
+			if(ctx.data.partition[primary].DIFI.flags[0] == 0x0){
+				if(ProcessTitleDB(ctx.extdataimg, db_mode,(ctx.data.header.DIFF.active_table_offset + ctx.data.partition[primary].DPFS.ivfc_length + ctx.data.partition[secondary].DPFS.ivfc_offset + ctx.data.partition[primary].IVFC.level_4_fs_relative_offset)) != 0){
 					printf("[!] %s is Corrupt, or is not a Title Database ExtData Image\n",ctx.extdataimg_path);
 				}
 			}
@@ -199,22 +159,22 @@ int main(int argc, char *argv[])
 	}
 	
 	if(ctx.extract == True && ctx.mode == Image){
-		if(ctx.partition[primary].DIFI.flags[0] == 1){//ONE FILE
-			u64 offset = ctx.partition[primary].DIFI.data_partition_offset + ctx.partition[primary].DPFS.ivfc_offset;
-			u64 size = ctx.partition[primary].IVFC.level_4_fs_size;
+		if(ctx.data.partition[primary].DIFI.flags[0] == 1){//ONE FILE
+			u64 offset = ctx.data.partition[primary].DIFI.data_partition_offset + ctx.data.partition[primary].DPFS.ivfc_offset;
+			u64 size = ctx.data.partition[primary].IVFC.level_4_fs_size;
 			get_extdata_single_blob(ctx.output,offset,size,ctx.extdataimg);
 		}
-		else if(ctx.partition[primary].DIFI.flags[0] == 0){//TWO Versions of ONE FILE
+		else if(ctx.data.partition[primary].DIFI.flags[0] == 0){//TWO Versions of ONE FILE
 			long int offset[2];
 			long int size[2];
 			memset(&offset,0x0,sizeof(offset));
 			memset(&size,0x0,sizeof(size));
 			//File 0 Details
-			offset[0] = ctx.header.DIFF.active_table_offset + ctx.partition[primary].IVFC.level_4_fs_relative_offset + ctx.partition[primary].DPFS.ivfc_offset;
-			size[0] = ctx.partition[primary].IVFC.level_4_fs_size;
+			offset[0] = ctx.data.header.DIFF.active_table_offset + ctx.data.partition[primary].IVFC.level_4_fs_relative_offset + ctx.data.partition[primary].DPFS.ivfc_offset;
+			size[0] = ctx.data.partition[primary].IVFC.level_4_fs_size;
 			//File 1 Details
-			offset[1] = ctx.header.DIFF.active_table_offset + ctx.partition[primary].DPFS.ivfc_length + ctx.partition[secondary].DPFS.ivfc_offset + ctx.partition[primary].IVFC.level_4_fs_relative_offset;
-			size[1] = ctx.partition[secondary].IVFC.level_4_fs_size;
+			offset[1] = ctx.data.header.DIFF.active_table_offset + ctx.data.partition[primary].DPFS.ivfc_length + ctx.data.partition[secondary].DPFS.ivfc_offset + ctx.data.partition[primary].IVFC.level_4_fs_relative_offset;
+			size[1] = ctx.data.partition[secondary].IVFC.level_4_fs_size;
 			for(int i = 0; i < 2; i++)
 				get_extdata_duo_blob(ctx.output,offset[i],size[i],i,ctx.extdataimg);
 		}
