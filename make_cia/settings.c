@@ -1,16 +1,34 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
 #include "lib.h"
 #include "ctr_crypto.h"
-#include "yaml.h"
 #include "settings.h"
 #include "srl.h"
 #include "ncsd.h"
+#include "tmd.h"
 
-void InitialiseSettings(CIA_CONTEXT *ctx)
+void InitialiseSettings(USER_CONTEXT *ctx)
 {
-	memset(ctx,0x0,sizeof(CIA_CONTEXT));
+	memset(ctx,0x0,sizeof(USER_CONTEXT));
 }
 
-int GetSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
+int GetSettings(USER_CONTEXT *ctx, int argc, char *argv[])
 {	
 	if(SetBooleanSettings(ctx,argc,argv)!=0)
 		return Fail;
@@ -24,26 +42,32 @@ int GetSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 		return Fail;
 		
 	for(int i = 1; i < argc; i++){
-		if(strncmp(argv[i],"--out=",6) == 0 && ctx->outfile.used != True){
-			ctx->outfile.used = True;
+		if(strncmp(argv[i],"--out=",6) == 0 && ctx->outfile.arg_len == 0){
 			ctx->outfile.arg_len = strlen(argv[i]+5);
 			ctx->outfile.argument = malloc(ctx->outfile.arg_len+1);
+			if(ctx->outfile.argument == NULL){
+				printf("[!] Memory Allocation Failure\n");
+				return Fail;
+			}
 			strcpy(ctx->outfile.argument,argv[i]+5);
 		}
-		else if(strncmp(argv[i],"-o",2) == 0 && ctx->outfile.used != True){
-			ctx->outfile.used = True;
+		else if(strncmp(argv[i],"-o",2) == 0 && ctx->outfile.arg_len == 0){
 			ctx->outfile.arg_len = strlen(argv[i+1]);
 			ctx->outfile.argument = malloc(ctx->outfile.arg_len+1);
+			if(ctx->outfile.argument == NULL){
+				printf("[!] Memory Allocation Failure\n");
+				return Fail;
+			}
 			strcpy(ctx->outfile.argument,argv[i+1]);
 		}
 	}
 	
-	if(ctx->showkeys_flag == True){
+	if(ctx->flags[showkeys] == True){
 		printf("\n[+] AES Key Data\n");
-		memdump(stdout,"CommonKey:   ",ctx->keys.common_key.key,0x10);
+		memdump(stdout,"CommonKey:   ",ctx->keys.common_key,0x10);
 		printf("CommonKeyID: %02x\n",ctx->keys.common_key_id);
-		memdump(stdout,"TitleKey:    ",ctx->keys.title_key.key,0x10);
-		memdump(stdout,"CXIKey:      ",ctx->keys.ncch_key.key,0x10);
+		memdump(stdout,"TitleKey:    ",ctx->keys.title_key,0x10);
+		memdump(stdout,"CXIKey:      ",ctx->keys.cxi_key[Secure],0x10);
 		printf("[+] RSA Key Data\n");
 		printf(" > Ticket:\n");
 		PrintRSAKeyData(&ctx->keys.ticket);
@@ -53,7 +77,7 @@ int GetSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 		PrintRSAKeyData(&ctx->keys.NcsdCfa);
 	}
 	
-	if(ctx->verbose_flag == True){
+	if(ctx->flags[info] == True){
 		printf("[+] Content Data:\n");
 		memdump(stdout, "Title ID:               ", ctx->core.TitleID, 0x8);
 		memdump(stdout, "Ticket ID:              ", ctx->core.TicketID, 0x8);
@@ -64,18 +88,18 @@ int GetSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 		printf("Ticket Issuer:          %s\n",ctx->core.TicketIssuer);
 		printf("TMD Issuer:             %s\n",ctx->core.TMDIssuer);
 	}
-	
-	fclose(ctx->core_infile.file.file);
-	
 	return 0;
 }
 
-int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[])
+int GetContentData(USER_CONTEXT *ctx, int argc, char *argv[])
 {
-	ctx->ContentInfoMallocFlag = True;
 	ctx->ContentInfo = malloc(sizeof(CONTENT_INFO)*ctx->ContentCount);
+	if(ctx->ContentInfo == NULL){
+		printf("[!] Memory Allocation Failure\n");
+		return Fail;
+	}
 	memset(ctx->ContentInfo,0,sizeof(CONTENT_INFO)*ctx->ContentCount);
-	if(ctx->build_mode == ctr_norm){
+	if(ctx->flags[build_mode] == ctr_norm || ctx->flags[build_mode] == twl_cia){
 		char path[20];
 		char id[20];
 		char index[20];
@@ -83,19 +107,21 @@ int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[])
 		char optional_bool[20];
 		char shared_bool[20];
 		for(u16 i = 0; i < ctx->ContentCount; i++){
-			u32_to_u8(ctx->ContentInfo[i].content_id,i,BE);
 			ctx->ContentInfo[i].content_index = i;
 			ctx->ContentInfo[i].file_offset = 0;
 			ctx->ContentInfo[i].content_type = 0;
+			GetRandomContentID(ctx->ContentInfo[i].content_id,i);
 			u8 bool_set[3];
 			memset(&bool_set,0,3);
-			if(ctx->encrypt_contents == True){
+			if(ctx->flags[encrypt_contents] == True){
 				ctx->ContentInfo[i].content_type += Encrypted;
 				ctx->ContentInfo[i].encrypted = True;
 				bool_set[0] = True;
 			}
 			//
 			sprintf(path,"--content%d=",i);
+			if(ctx->flags[build_mode] == twl_cia)
+				sprintf(path,"--srl=");
 			sprintf(id,"--id_%d=",i);
 			sprintf(index,"--index_%d=",i);
 			sprintf(encrypt_bool,"--crypt_%d",i);
@@ -134,52 +160,15 @@ int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[])
 			}
 		}
 	}
-	else if(ctx->build_mode == twl_cia){
-		u32_to_u8(ctx->ContentInfo[0].content_id,0,BE);
-		ctx->ContentInfo[0].content_index = 0;
-		ctx->ContentInfo[0].file_offset = 0;
-		memcpy(ctx->ContentInfo[0].file_path,ctx->core_infile.argument,ctx->core_infile.arg_len);
-		u8 bool_set[3];
-		memset(&bool_set,0,3);
-		if(ctx->encrypt_contents == True){
-			ctx->ContentInfo[0].content_type += Encrypted;
-			bool_set[0] = True;
-			ctx->ContentInfo[0].encrypted = True;
-		}
-		
-		for(int i = 0; i < argc; i++){
-			if(strncmp(argv[i],"--id_0=",7) == 0){
-				u32 content_id = strtol(argv[i]+7,NULL,16);
-				u32_to_u8(ctx->ContentInfo[0].content_id,content_id,BE);
-			}
-			else if(strncmp(argv[i],"--index_0=",10) == 0){
-				ctx->ContentInfo[0].content_index = strtol(argv[i]+10,NULL,10);
-			}
-			else if(strncmp(argv[i],"--crypt_0",9) == 0 && bool_set[0] != True){
-				ctx->ContentInfo[0].content_type += Encrypted;
-				bool_set[0] = True;
-				ctx->ContentInfo[0].encrypted = True;
-			}
-			else if(strncmp(argv[i],"--optional_0",12) == 0 && bool_set[1] != True){
-				ctx->ContentInfo[0].content_type += Optional;
-				bool_set[1] = True;
-			}
-			else if(strncmp(argv[i],"--shared_0",10) == 0 && bool_set[2] != True){
-				ctx->ContentInfo[0].content_type += Shared;
-				bool_set[2] = True;
-			}
-		}
-		
-	}
-	else if(ctx->build_mode == rom_conv){
+	else if(ctx->flags[build_mode] == rom_conv){
 		for(int i = 0; i < ctx->ContentCount; i++){
 			for(int j = 0; j < 8; j++){
 				if(ctx->ncsd_struct->partition_data[j].active == True){
-					if(ctx->encrypt_contents == True){
+					if(ctx->flags[encrypt_contents] == True){
 						ctx->ContentInfo[i].content_type = Encrypted;
 						ctx->ContentInfo[i].encrypted = True;
 					}
-					u32_to_u8(ctx->ContentInfo[i].content_id,i,BE);
+					GetRandomContentID(ctx->ContentInfo[i].content_id,i);
 					ctx->ContentInfo[i].content_index = j;
 					ctx->ContentInfo[i].file_offset = ctx->ncsd_struct->partition_data[j].offset;
 					ctx->ContentInfo[i].content_size = ctx->ncsd_struct->partition_data[j].size;
@@ -193,13 +182,15 @@ int GetContentData(CIA_CONTEXT *ctx, int argc, char *argv[])
 	return 0;
 }
 
-int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
+int GetCoreData(USER_CONTEXT *ctx, int argc, char *argv[])
 {
 	ctx->ContentCount = 0;
-	if(ctx->build_mode == ctr_norm){
-		for(u16 i = 0; i < 0xffff; i++){
-			u8 Found = False;
-			for(u16 j = 1; j < argc; j++){
+	FILE *input = NULL;
+	if(ctx->flags[build_mode] == ctr_norm){
+		u8 Found = True;
+		for(u16 i = 0; i < 0xffff && Found == True; i++){
+			Found = False;
+			for(u16 j = 1; j < argc && Found == False; j++){
 				char option[20];
 				sprintf(option,"--content%d=",i);
 				//printf("%s\n",option);
@@ -208,19 +199,19 @@ int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
 					Found = True;
 				}
 			}
-			if(Found != True)
-					break;
 		}
-		for(int i = 1; i < argc; i++){
+		for(int i = 1; i < argc && ctx->core_infile.arg_len == 0; i++){
 			if(strncmp(argv[i],"--content0=",11) == 0){
-				ctx->core_infile.used = True;
-				ctx->core_infile.file.used = True;
 				ctx->core_infile.arg_len = strlen(argv[i]+11);
 				ctx->core_infile.argument = malloc(ctx->core_infile.arg_len+1);
+				if(ctx->core_infile.argument == NULL){
+					printf("[!] Memory Allocation Failure\n");
+					return Fail;
+				}
 				memcpy(ctx->core_infile.argument,argv[i]+11,ctx->core_infile.arg_len+1);
-				ctx->core_infile.file.file = fopen(ctx->core_infile.argument,"rb");
-				if(ctx->core_infile.file.file == NULL){
-					printf("[!] Failed to open content0: %s\n",argv[i]+10);
+				input = fopen(ctx->core_infile.argument,"rb");
+				if(input == NULL){
+					printf("[!] Failed to open content0: %s\n",ctx->core_infile.argument);
 					return Fail;
 				}
 			}
@@ -229,65 +220,72 @@ int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
 			printf("[!] There must at least one content\n");
 			return Fail;
 		}
-		if(ctx->core_infile.file.file == NULL){
+		if(input == NULL){
 			printf("[!] Content0 was not specified\n");
 			return Fail;
 		}
-		if(GetCoreContentNCCH(ctx,&ctx->core,0x0,ctx->core_infile.file.file) != 0){
+		if(GetCoreContentNCCH(ctx,&ctx->core,0x0,input) != 0){
 			printf("[!] Failed to retrieve data from Content0: %s\n",ctx->core_infile.argument);
 			return Fail;
 		}
 	}
-	else if(ctx->build_mode == twl_cia){
-		for(int i = 1; i < argc; i++){
+	else if(ctx->flags[build_mode] == twl_cia){
+		for(int i = 1; i < argc && ctx->core_infile.arg_len == 0; i++){
 			if(strncmp(argv[i],"--srl=",6) == 0){
-				ctx->core_infile.used = True;
-				ctx->core_infile.file.used = True;
 				ctx->core_infile.arg_len = strlen(argv[i]+6);
 				ctx->core_infile.argument = malloc(ctx->core_infile.arg_len+1);
+				if(ctx->core_infile.argument == NULL){
+					printf("[!] Memory Allocation Failure\n");
+					return Fail;
+				}
 				memcpy(ctx->core_infile.argument,argv[i]+6,ctx->core_infile.arg_len+1);
-				ctx->core_infile.file.file = fopen(ctx->core_infile.argument,"rb");
-				if(ctx->core_infile.file.file == NULL){
+				input = fopen(ctx->core_infile.argument,"rb");
+				if(input == NULL){
 					printf("[!] Failed to open content0: %s\n",ctx->core_infile.argument);
 					return Fail;
 				}
 			}
 		}
-		if(ctx->core_infile.file.file == NULL){
+		if(input == NULL){
 			printf("[!] Content0 was not specified\n");
 			return Fail;
 		}
-		if(GetCoreContentSRL(&ctx->core,ctx->core_infile.file.file) != 0){
+		if(GetCoreContentSRL(&ctx->core,input) != 0){
 			printf("[!] Failed to retrieve data from Content0: %s\n",ctx->core_infile.argument);
 			return Fail;
 		}
 		ctx->ContentCount = 1;
 	}
-	else if(ctx->build_mode == rom_conv){
-		for(int i = 1; i < argc; i++){
+	else if(ctx->flags[build_mode] == rom_conv){
+		for(int i = 1; i < argc && ctx->core_infile.arg_len == 0; i++){
 			if(strncmp(argv[i],"--rom=",6) == 0){
-				ctx->core_infile.used = True;
-				ctx->core_infile.file.used = True;
 				ctx->core_infile.arg_len = strlen(argv[i]+6);
 				ctx->core_infile.argument = malloc(ctx->core_infile.arg_len+1);
+				if(ctx->core_infile.argument == NULL){
+					printf("[!] Memory Allocation Failure\n");
+					return Fail;
+				}
 				memcpy(ctx->core_infile.argument,argv[i]+6,ctx->core_infile.arg_len+1);
-				ctx->core_infile.file.file = fopen(ctx->core_infile.argument,"rb");
-				if(ctx->core_infile.file.file == NULL){
+				input = fopen(ctx->core_infile.argument,"rb");
+				if(input == NULL){
 					printf("[!] Failed to open ROM: %s\n",ctx->core_infile.argument);
 					return Fail;
 				}
 			}
 		}
-		if(ctx->core_infile.file.file == NULL){
+		if(input == NULL){
 			printf("[!] ROM was not specified\n");
 			return Fail;
 		}
-		ctx->ncsd_struct_malloc_flag = True;
 		ctx->ncsd_struct = malloc(sizeof(NCSD_STRUCT));
-		if(GetNCSDData(ctx,ctx->ncsd_struct,ctx->core_infile.file.file) != 0)
+		if(ctx->ncsd_struct == NULL){
+			printf("[!] Memory Allocation Failure\n");
+			return Fail;
+		}
+		if(GetNCSDData(ctx,ctx->ncsd_struct,input) != 0)
 			return 1;
-		ctx->meta_flag = False;
-		GetCoreContentNCCH(ctx,&ctx->core,ctx->ncsd_struct->partition_data[0].offset,ctx->core_infile.file.file);
+		ctx->flags[gen_meta] = False;
+		GetCoreContentNCCH(ctx,&ctx->core,ctx->ncsd_struct->partition_data[0].offset,input);
 		ctx->ContentCount = 0;
 		for(int i = 0; i < 8; i++){
 			if(ctx->ncsd_struct->partition_data[i].active)
@@ -305,55 +303,52 @@ int GetCoreData(CIA_CONTEXT *ctx, int argc, char *argv[])
 	u8 hash[0x20];
 	ctr_sha_256(ctx->core_infile.argument,100,hash);
 	memcpy(ctx->core.TicketID,&hash,0x8);
+	fclose(input);
 	return 0;
 }
 
-int SetBooleanSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
+int SetBooleanSettings(USER_CONTEXT *ctx, int argc, char *argv[])
 {
-	/*
-	ctx->encrypt_contents = False;
-	ctx->rand_titlekey = False;
-	ctx->showkeys_flag = False;
-	ctx->verbose_flag = False;
-	ctx->build_mode = False;
-	*/
+	memset(ctx->flags,False,sizeof(ctx->flags));
 	for(int i = 1; i < argc; i++){
 		if(strncmp(argv[i],"-e",2) == 0 || strncmp(argv[i],"--encrypt",9) == 0){
-			ctx->encrypt_contents = True;
+			ctx->flags[encrypt_contents] = True;
 		}
-		else if(strncmp(argv[i],"--rand",6) == 0){
-			ctx->rand_titlekey = True;
+		else if(strncmp(argv[i],"-p",2) == 0 || strncmp(argv[i],"--info",6) == 0){
+			ctx->flags[info] = True;
 		}
 		else if(strncmp(argv[i],"-k",2) == 0 || strncmp(argv[i],"--showkeys",10) == 0){
-			ctx->showkeys_flag = True;
+			ctx->flags[showkeys] = True;
 		}
 		else if(strncmp(argv[i],"-v",2) == 0 || strncmp(argv[i],"--verbose",9) == 0){
-			ctx->verbose_flag = True;
+			ctx->flags[verbose] = True;
 		}
 		else if(strncmp(argv[i],"--content0=",11) == 0){
-			ctx->build_mode = ctr_norm;
+			ctx->flags[build_mode] = ctr_norm;
 		}
 		else if(strncmp(argv[i],"--srl=",6) == 0){
-			ctx->build_mode = twl_cia;
+			ctx->flags[build_mode] = twl_cia;
 		}
 		else if(strncmp(argv[i],"--rom=",6) == 0){
-			ctx->build_mode = rom_conv;
+			ctx->flags[build_mode] = rom_conv;
 		}
 	}
-	if(ctx->build_mode == 0){
+	if(ctx->flags[build_mode] == 0){
 		printf("[!] Nothing to do\n");
 		return Fail;
 	}
 	return 0;
 }
 
-int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
+int SetCryptoSettings(USER_CONTEXT *ctx, int argc, char *argv[])
 {
 	//AES Keys
-	memcpy(ctx->keys.common_key.key,ctr_aes_common_key_dev0,16);
-	memcpy(ctx->keys.title_key.key,zeros_fixed_aesKey,16);
-	memcpy(ctx->keys.ncch_key.key,zeros_fixed_aesKey,16);
 	ctx->keys.common_key_id = 0;
+	memcpy(ctx->keys.common_key,ctr_aes_common_key_dev0,16);
+	memcpy(ctx->keys.title_key,zeros_fixed_aesKey,16);
+	memcpy(ctx->keys.cxi_key[ZerosFixed],zeros_fixed_aesKey,16);
+	memcpy(ctx->keys.cxi_key[SystemFixed],system_fixed_aesKey,16);
+	memset(ctx->keys.cxi_key[Secure],0,16);
 	
 	//RSA Keys
 	memcpy(ctx->keys.ticket.n,xs9_dpki_rsa_pubMod,0x100);
@@ -371,19 +366,19 @@ int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 	for(int i = 1; i < argc; i++){
 		if(strncmp(argv[i],"--cxikey=",9) == 0){
 			if(strlen(argv[i]+9) == 32)
-				char_to_int_array(ctx->keys.ncch_key.key,argv[i]+9,16,BE,16);
+				char_to_int_array(ctx->keys.cxi_key[Secure],argv[i]+9,16,BE,16);
 			else
 				printf("[!] Invalid Size for CXI key\n");
 		}
 		else if(strncmp(argv[i],"--titlekey=",11) == 0){
 			if(strlen(argv[i]+11) == 32)
-				char_to_int_array(ctx->keys.title_key.key,argv[i]+11,16,BE,16);
+				char_to_int_array(ctx->keys.title_key,argv[i]+11,16,BE,16);
 			else
 				printf("[!] Invalid Size for title key\n");
 		}
 		else if(strncmp(argv[i],"--ckey=",7) == 0){
 			if(strlen(argv[i]+7) == 32)
-				char_to_int_array(ctx->keys.common_key.key,argv[i]+7,16,BE,16);
+				char_to_int_array(ctx->keys.common_key,argv[i]+7,16,BE,16);
 			else
 				printf("[!] Invalid Size for common key\n");
 		}
@@ -431,34 +426,48 @@ int SetCryptoSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
 		else if(strncmp(argv[i],"--certs=",8) == 0){
 			FILE *certs = fopen(argv[i]+8,"rb");
 			if(certs != NULL){
-				ctx->certchain.used = True;
-				ctx->certchain.size = GetFileSize_u32(certs);
-				ctx->certchain.buffer = malloc(ctx->certchain.size);
-				fread(ctx->certchain.buffer,ctx->certchain.size,1,certs);
+				ctx->cia_section[certchain].size = GetFileSize_u32(certs);
+				ctx->cia_section[certchain].buffer = malloc(ctx->cia_section[certchain].size);
+				if(ctx->cia_section[certchain].buffer == NULL){
+					printf("[!] Memory Allocation Failure\n");
+					return Fail;
+				}
+				fread(ctx->cia_section[certchain].buffer,ctx->cia_section[certchain].size,1,certs);
 				fclose(certs);
 			}
 			else
 				printf("[!] Could not open, %s\n",argv[i]+8);
 		}
+		else if(strncmp(argv[i],"--rand",6) == 0){
+			u8 *buff = malloc(16);
+			if(buff == NULL){
+				printf("[!] Memory Allocation Failure\n");
+				return Fail;
+			}
+			u8 hash[0x20];
+			ctr_sha_256(buff,16,hash);
+			memcpy(ctx->keys.title_key,hash,16);
+			_free(buff);
+		}
+		else if(strncmp(argv[i],"--forcecxikey",6) == 0){
+			memcpy(ctx->keys.cxi_key[ZerosFixed],ctx->keys.cxi_key[Secure],16);
+			memcpy(ctx->keys.cxi_key[SystemFixed],ctx->keys.cxi_key[Secure],16);
+		}
 	}
-	if(ctx->certchain.used != True){
-		ctx->certchain.used = True;
-		ctx->certchain.size = 0xA00;
-		ctx->certchain.buffer = malloc(ctx->certchain.size);
-		memcpy(ctx->certchain.buffer,CIA_Certificate_Chain,ctx->certchain.size);
-	}
-	if(ctx->rand_titlekey == True){
-		u8 *buff = malloc(16);
-		u8 hash[0x20];
-		ctr_sha_256(buff,16,hash);
-		memcpy(ctx->keys.title_key.key,hash,16);
-		free(buff);
+	if(ctx->cia_section[certchain].size == 0){
+		ctx->cia_section[certchain].size = 0xA00;
+		ctx->cia_section[certchain].buffer = malloc(ctx->cia_section[certchain].size);
+		if(ctx->cia_section[certchain].buffer == NULL){
+			printf("[!] Memory Allocation Failure\n");
+			return Fail;
+		}
+		memcpy(ctx->cia_section[certchain].buffer,CIA_DEV_Certificate_Chain,ctx->cia_section[certchain].size);
 	}
 	
 	return 0;
 }
 
-int SetBuildSettings(CIA_CONTEXT *ctx, int argc, char *argv[])
+int SetBuildSettings(USER_CONTEXT *ctx, int argc, char *argv[])
 {
 	u8 vermod[2];
 	memset(&vermod,False,2);
@@ -576,11 +585,11 @@ int LoadRSAKeyFile(RSA_2048_KEY *ctx, FILE *file)
 	
 	ctx->keytype = RSAKEY_PRIV;
 	
-	ReadFile_u32(ctx->n,u8_to_u32(header.n_offset,BE),u8_to_u32(header.n_size,BE),file);
-	ReadFile_u32(ctx->e,u8_to_u32(header.e_offset,BE),u8_to_u32(header.e_size,BE),file);
-	ReadFile_u32(ctx->d,u8_to_u32(header.d_offset,BE),u8_to_u32(header.d_size,BE),file);
-	ReadFile_u32(ctx->name,u8_to_u32(header.name_offset,BE),u8_to_u32(header.name_size,BE),file);
-	ReadFile_u32(ctx->issuer,u8_to_u32(header.issuer_offset,BE),u8_to_u32(header.issuer_size,BE),file);
+	ReadFile_64(ctx->n,u8_to_u32(header.n_size,BE),u8_to_u32(header.n_offset,BE),file);
+	ReadFile_64(ctx->e,u8_to_u32(header.e_size,BE),u8_to_u32(header.e_offset,BE),file);
+	ReadFile_64(ctx->d,u8_to_u32(header.d_size,BE),u8_to_u32(header.d_offset,BE),file);
+	ReadFile_64(ctx->name,u8_to_u32(header.name_size,BE),u8_to_u32(header.name_offset,BE),file);
+	ReadFile_64(ctx->issuer,u8_to_u32(header.issuer_size,BE),u8_to_u32(header.issuer_offset,BE),file);
 	
 	return 0;
 }
@@ -597,7 +606,7 @@ void PrintRSAKeyData(RSA_2048_KEY *ctx)
 	memdump(stdout, "d:           ", ctx->d, 0x100);
 }
 
-int SetTicketIssuer(CIA_CONTEXT *ctx)
+int SetTicketIssuer(USER_CONTEXT *ctx)
 {
 	memset(ctx->core.TicketIssuer,0x0,0x40);
 	u8 old_issuer_len = strlen(ctx->keys.ticket.issuer);
@@ -608,7 +617,7 @@ int SetTicketIssuer(CIA_CONTEXT *ctx)
 	return 0;
 }
 
-int SetTitleMetaDataIssuer(CIA_CONTEXT *ctx)
+int SetTitleMetaDataIssuer(USER_CONTEXT *ctx)
 {
 	memset(ctx->core.TMDIssuer,0x0,0x40);
 	u8 old_issuer_len = strlen(ctx->keys.tmd.issuer);
@@ -619,8 +628,11 @@ int SetTitleMetaDataIssuer(CIA_CONTEXT *ctx)
 	return 0;
 }
 
-void ReadFile_u32(void *outbuff,u32 offset,u32 size,FILE *file)
+void GetRandomContentID(u8 *contentID, u16 value)
 {
-	fseek(file,offset,SEEK_SET);
-	fread(outbuff,size,1,file);
+	u16 *rand = malloc(8*sizeof(u16));
+	rand[0] = value*4;
+	u8 hash[0x20];
+	ctr_sha_256(rand,8*sizeof(u16),hash);
+	memcpy(contentID,&hash,0x4);
 }

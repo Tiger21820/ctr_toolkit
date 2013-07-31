@@ -1,8 +1,33 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
+#ifndef _CTX_H_
+#define _CTX_H_
+
 typedef enum
 {
-	common = 1,
-	unique
-} ticket_type;
+	header = 0,
+	certchain = 1,
+	tik = 2,
+	tmd = 3,
+	content = 4,
+	meta = 5,
+} cia_sections;
 
 typedef enum
 {
@@ -13,184 +38,9 @@ typedef enum
 
 typedef enum
 {
-	TYPE_CTR = 0x40,
-	TYPE_DATA = 0x8
-} title_type;
-
-typedef enum
-{
-	RSA_4096_SHA1 = 0x00010000,
-	RSA_2048_SHA1 = 0x00010001,
-	ECC_SHA1 = 0x00010002,
-	RSA_4096_SHA256 = 0x00010003,
-	RSA_2048_SHA256 = 0x00010004,
-	ECC_SHA256 = 0x00010005
-} sig_types;
-
-typedef enum
-{
 	NCCH_MAGIC = 0x4E434348,
 	NCSD_MAGIC = 0x4E435344
 } file_magic;
-
-typedef enum
-{
-	KB = 1024,
-	MB = 1048576,
-	GB = 1073741824
-} file_size;
-
-//Define PubK Types
-typedef enum
-{
-	RSA_4096_PUBK = 0,
-	RSA_2048_PUBK,
-	ECC_PUBK
-} pubk_types;
-
-//Content Platforms
-typedef enum
-{
-	TWL = 1,
-	CTR
-} content_platform;
-
-typedef enum
-{
-	Encrypted = 0x0001,
-	Optional = 0x4000,
-	Shared = 0x8000
-} content_types;
-
-typedef enum
-{
-	lic_Permanent = 0,
-	lic_Demo = 1,
-	lic_Trial = 2,
-	lic_Rental = 3,
-	lic_Subscription = 4,
-	lic_Service = 5,
-	lic_Mask = 15
-} ticket_license_type;
-
-typedef enum
-{
-	right_Permanent = 1,
-	right_Subscription = 2,
-	right_Content = 3,
-	right_ContentConsumption = 4,
-	right_AccessTitle = 5
-} ticket_item_rights;
-
-typedef enum
-{
-	_unknown = 0,
-	CXI,
-	CFA_Manual,
-	CFA_DLPChild,
-	CFA_Update
-} ncch_types;
-
-
-//Key Types
-typedef enum
-{
-	No_Key = 0,
-	ZerosFixed = 1,
-	SystemFixed = 2,
-	Secure = 3
-} ncch_key;
-
-//Modes
-typedef enum
-{
-	dev = 1,
-	prod,
-	test
-} cia_type;
-
-//Key Struct
-
-typedef struct
-{
-	u8 used;
-	u8 key[0x10];
-} __attribute__((__packed__)) 
-AES_128_KEY;
-
-typedef enum
-{
-	ENC,
-	DEC
-} aescbcmode;
-
-typedef enum
-{
-	RSAKEY_INVALID,
-	RSAKEY_PRIV,
-	RSAKEY_PUB
-} rsakeytype;
-
-typedef struct
-{
-	//Public
-	unsigned char n[256];
-	unsigned char e[3];
-	unsigned char d[256];
-	unsigned char p[128];
-	unsigned char q[128];
-	unsigned char dp[128];
-	unsigned char dq[128];
-	unsigned char qp[128];
-	rsakeytype keytype;
-	
-	//Key Data
-	char name[0x40];
-	char issuer[0x40];
-} __attribute__((__packed__)) 
-RSA_2048_KEY;
-
-
-typedef struct
-{
-	//AES Keys
-	u8 common_key_id;
-	AES_128_KEY common_key;
-	AES_128_KEY title_key;
-	AES_128_KEY ncch_key;
-	
-	//RSA Keys
-	RSA_2048_KEY ticket;
-	RSA_2048_KEY tmd;
-	RSA_2048_KEY NcsdCfa;
-} __attribute__((__packed__)) 
-KEY_STORE;
-
-//Variable Structs
-
-typedef struct
-{
-	u8 used;
-	FILE *file;
-} __attribute__((__packed__)) 
-F_OPTION_CTX;
-
-typedef struct
-{
-	u8 used;
-	char *argument;
-	u8 arg_len;
-	F_OPTION_CTX file;
-} __attribute__((__packed__)) 
-OPTION_CTX;
-
-typedef struct
-{
-	u8 used;
-	u8 *buffer;
-	u64 size;
-} __attribute__((__packed__)) 
-COMPONENT_STRUCT;
 
 typedef struct
 {
@@ -221,6 +71,21 @@ typedef struct
 	u64 used_rom_size;
 	PARTITION_DATA partition_data[8];
 } NCSD_STRUCT;
+
+typedef struct
+{
+	//AES Keys
+	u8 common_key_id;
+	u8 common_key[16];
+	u8 title_key[16];
+	u8 cxi_key[3][16];
+	
+	//RSA Keys
+	RSA_2048_KEY ticket;
+	RSA_2048_KEY tmd;
+	RSA_2048_KEY NcsdCfa;
+} __attribute__((__packed__)) 
+KEY_STORE;
 
 typedef struct
 {
@@ -262,62 +127,35 @@ typedef struct
 } __attribute__((__packed__)) 
 CORE_CONTENT_INFO;
 
-typedef struct
+typedef enum
 {
-	//Components
-	COMPONENT_STRUCT header;
-	COMPONENT_STRUCT certchain;
-	COMPONENT_STRUCT ticket;
-	COMPONENT_STRUCT tmd;
-	COMPONENT_STRUCT content;
-	COMPONENT_STRUCT meta;
-	
-	//Content Data
-	u16 ContentCount;
-	u8 ContentInfoMallocFlag;
-	CONTENT_INFO *ContentInfo; //Content Info
-	
-	//Key Data
-	KEY_STORE keys;
-	
-	//Content Data For TMD/Ticket and Encrypt/Decrypt etc
-	CORE_CONTENT_INFO core;
-	
-	//Input Info
-	OPTION_CTX core_infile;
-	OPTION_CTX configfile;
-	OPTION_CTX outfile;
-	OPTION_CTX ncsdfile;
-	
-	//NCSD Data
-	u8 ncsd_struct_malloc_flag;
-	NCSD_STRUCT *ncsd_struct;
-	
-	//Settings
-	u8 encrypt_contents;
-	u8 rand_titlekey;
-	u8 build_mode;
-	u8 cia_type;
-	u8 verbose_flag;
-	u8 meta_flag;
-	u8 showkeys_flag;
-} __attribute__((__packed__)) 
-CIA_CONTEXT;
+	encrypt_contents = 0,
+	build_mode,
+	gen_meta,
+	verbose,
+	showkeys,
+	info,
+} arg_flag_index;
 
 typedef struct
 {
-	u8 magic[4];
-	u8 rsatype[2];
-	u8 reserved[2];
-	u8 n_offset[4];
-	u8 n_size[4];
-	u8 e_offset[4];
-	u8 e_size[4];
-	u8 d_offset[4];
-	u8 d_size[4];
-	u8 name_offset[4];
-	u8 name_size[4];
-	u8 issuer_offset[4];
-	u8 issuer_size[4];
-} __attribute__((__packed__)) 
-CRKF_HEADER;
+	//Components
+	COMPONENT_STRUCT cia_section[6];
+	
+	//Content Data
+	u16 ContentCount;
+	CONTENT_INFO *ContentInfo; //Content Info, where content specific data for TMD is kept
+	CORE_CONTENT_INFO core; // For storing data relating to TMD/TIK generation
+	NCSD_STRUCT *ncsd_struct; // For storing ROM Info
+	
+	//Input Info (path to input/output)
+	OPTION_CTX core_infile;
+	OPTION_CTX outfile;	
+	
+	//Settings
+	KEY_STORE keys;
+	u8 flags[6];
+	
+} USER_CONTEXT;
+
+#endif

@@ -1,3 +1,21 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
 #include "lib.h"
 
 //MISC
@@ -28,7 +46,7 @@ void char_to_int_array(unsigned char destination[], char source[], int size, int
         }
     }
 	**/
-	free(byte_array);
+	_free(byte_array);
 }
 
 void endian_memcpy(u8 *destination, u8 *source, u32 size, int endianness)
@@ -91,12 +109,41 @@ void resolve_flag_u16(u16 flag, unsigned char *flag_bool)
 	}
 }
 
+int append_filextention(char *output, u16 max_outlen, char *input, char extention[])
+{
+	if(output == NULL || input == NULL){
+		printf("[!] Memory Error\n");
+		return Fail;
+	}
+	memset(output,0,max_outlen);
+	u16 extention_point = strlen(input)+1;
+	for(int i = strlen(input)-1; i > 0; i--){
+		if(input[i] == '.'){
+			extention_point = i;
+			break;
+		}
+	}
+	if(extention_point+strlen(extention) >= max_outlen){
+		printf("[!] Input File Name Too Large for Output buffer\n");
+		return Fail;
+	}
+	memcpy(output,input,extention_point);
+	sprintf(output,"%s%s",output,extention);
+	return 0;
+}
+
 //IO Related
 void WriteBuffer(void *buffer, u64 size, u64 offset, FILE *output)
 {
 	fseek_64(output,offset,SEEK_SET);
 	fwrite(buffer,size,1,output);
 } 
+
+void ReadFile_64(void *outbuff, u64 size, u64 offset, FILE *file)
+{
+	fseek_64(file,offset,SEEK_SET);
+	fread(outbuff,size,1,file);
+}
 
 u64 GetFileSize_u64(char *filename)
 {
@@ -157,6 +204,8 @@ int TruncateFile_u64(char *filename, u64 filelen)
 int fseek_64(FILE *fp, u64 file_pos, int whence)
 {
 #ifdef _WIN32
+	if(whence != SEEK_SET)
+		printf("[!] fseek_64, whence has been overided to SEEK_SET\n");
 	fpos_t pos = file_pos;
 	return fsetpos(fp,&pos); //I can't believe the 2gb problem with Windows & MINGW, maybe I have a bad installation :/
 #else
@@ -176,10 +225,16 @@ int makedir(const char* dir)
 char *getcwdir(char *buffer,int maxlen)
 {
 #ifdef _WIN32
-return _getcwd(buffer,maxlen);
+	return _getcwd(buffer,maxlen);
 #else
-return getcwd(buffer,maxlen);
+	return getcwd(buffer,maxlen);
 #endif
+}
+
+void _free(void *ptr)
+{
+	free(ptr);
+	ptr = NULL;
 }
 
 //Data Size conversion

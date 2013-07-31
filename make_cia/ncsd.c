@@ -1,8 +1,26 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
 #include "lib.h"
 #include "ctr_crypto.h"
 #include "ncsd.h"
 
-int GetNCSDData(CIA_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd)
+int GetNCSDData(USER_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd)
 {
 	if(ncsd_struct == NULL)
 		return Fail;
@@ -22,6 +40,11 @@ int GetNCSDData(CIA_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd)
 	fread(&dev_card_info,sizeof(DEV_CARD_INFO_HEADER),1,ncsd);
 	
 	ctr_sha_256(&header,sizeof(NCSD_HEADER),ncsd_struct->ncsd_header_hash);
+	
+	if(u8_to_u32(header.magic,BE) != NCSD_MAGIC){
+		printf("[!] ROM is Corrupt\n");
+		return Fail;
+	}
 	
 	ncsd_struct->sig_valid = ctr_rsa2048_sha256_verify(ncsd_struct->ncsd_header_hash,ncsd_struct->signature,ctx->keys.NcsdCfa.n);
 	
@@ -48,14 +71,12 @@ int GetNCSDData(CIA_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd)
 		ncsd_struct->partition_data[i].crypto_type = header.partitions_crypto_type[i];
 		
 		u8 magic[4];
-		fpos_t pos = ncsd_struct->partition_data[i].offset + 0x100;
-		fsetpos(ncsd,&pos);
+		fseek_64(ncsd,(ncsd_struct->partition_data[i].offset + 0x100),SEEK_SET);
 		fread(&magic,4,1,ncsd);
 		if(u8_to_u32(magic,BE) == NCCH_MAGIC){
 			u8 flags[8];
 			u8 flag_bool[8];
-			fpos_t pos = ncsd_struct->partition_data[i].offset + 0x188;
-			fsetpos(ncsd,&pos);
+			fseek_64(ncsd,(ncsd_struct->partition_data[i].offset + 0x188),SEEK_SET);
 			fread(&flags,8,1,ncsd);
 			resolve_flag(flags[5],flag_bool);
 			if(flag_bool[1] == False && flag_bool[0] == True){
@@ -119,12 +140,12 @@ int GetNCSDData(CIA_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd)
 	}
 	**/
 	ncsd_struct->valid = True;
-	if(ctx->verbose_flag)
+	if(ctx->flags[info])
 		PrintNCSDData(ncsd_struct,&header,&card_info,&dev_card_info);
 	return 0;
 }
 
-int VerifyNCSD(CIA_CONTEXT *ctx, FILE *ncsd)
+int VerifyNCSD(USER_CONTEXT *ctx, FILE *ncsd)
 {	
 	u8 HeaderSignature[0x100];
 	u8 Header[0x100];
@@ -143,9 +164,13 @@ int VerifyNCSD(CIA_CONTEXT *ctx, FILE *ncsd)
 	return 0;
 }
 
-int VerifyNCCHSection(CIA_CONTEXT *ctx, u8 ncch_key[0x10], u32 offset, FILE *ncch)
+int VerifyNCCHSection(USER_CONTEXT *ctx, u8 cxi_key[0x10], u32 offset, FILE *ncch)
 {
 	NCCH_STRUCT *cxi_ctx = malloc(sizeof(NCCH_STRUCT));
+	if(cxi_ctx == NULL){
+		printf("[!] Memory Allocation Failure\n");
+		return Fail;
+	}
 	memset(cxi_ctx,0x0,sizeof(NCCH_STRUCT));
 	GetCXIStruct(cxi_ctx,offset,ncch);
 	
@@ -185,7 +210,7 @@ prep_cxi_validate:
 		ncch_get_counter(cxi_ctx,counter,NCCHTYPE_EXHEADER);
 		ctr_aes_context aes_ctx;
 		memset(&aes_ctx,0x0,sizeof(ctr_aes_context));
-		ctr_init_counter(&aes_ctx, ncch_key, counter);
+		ctr_init_counter(&aes_ctx, cxi_key, counter);
 		ctr_crypt_counter(&aes_ctx, ExHeader, ExHeader, 0x800);
 		if(memcmp((ExHeader+0x200),cxi_ctx->programID,8) != 0){
 			printf("[!] CXI decryption failed\n");
@@ -201,28 +226,14 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 {
 	if(ctx->valid != True){
 		printf("[!] NCSD Corrupt\n");
+		return;
 	}
 	printf("[+] NCSD\n");
-#ifndef _DEBUG_KEY_BUILD_
 	switch(ctx->sig_valid){
 		case Good : memdump(stdout,"Signature(Good):        ",ctx->signature,0x100); break;
 		case Fail : memdump(stdout,"Signature(Fail):        ",ctx->signature,0x100); break;
 		case NotChecked: memdump(stdout,"Signature:              ",ctx->signature,0x100); break;
 	}
-#endif
-
-#ifdef _DEBUG_KEY_BUILD_
-	if(ctx->type == retail){
-		memdump(stdout,"Signature:              ",ctx->signature,0x100);
-	}
-	else{
-		switch(ctx->sig_valid){
-			case Good : memdump(stdout,"Signature(Good):        ",ctx->signature,0x100); break;
-			case Fail : memdump(stdout,"Signature(Fail):        ",ctx->signature,0x100); break;
-			case NotChecked: memdump(stdout,"Signature:              ",ctx->signature,0x100); break;
-		}
-	}
-#endif
 	switch(ctx->type){
 		case retail : 
 			printf("Target:                 Retail/Production\n"); 
@@ -232,7 +243,7 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			memset(FW_STRING,0,10);
 			GetMin3DSFW(FW_STRING,card_info);
 			printf("Min 3DS Firm:           %s\n",FW_STRING);
-			free(FW_STRING);
+			_free(FW_STRING);
 			break;
 		case dev_internal_SDK :
 			printf("Target:                 Debug/Development\n");
@@ -246,10 +257,10 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			break;
 	}
 	if(ctx->rom_size >= GB){
-		printf("ROM Cart Size:          %d GB",ctx->rom_size/GB); printf(" (%d Gbit)\n",(ctx->rom_size/GB)*8);
+		printf("ROM Cart Size:          %lld GB",ctx->rom_size/GB); printf(" (%lld Gbit)\n",(ctx->rom_size/GB)*8);
 	}
 	else{
-		printf("ROM Cart Size:          %d MB",ctx->rom_size/MB); 
+		printf("ROM Cart Size:          %lld MB",ctx->rom_size/MB); 
 		u32 tmp = (ctx->rom_size/MB)*8;
 		if(tmp >= 1024)
 			printf(" (%d Gbit)\n",tmp/1024);
@@ -257,10 +268,10 @@ void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card
 			printf(" (%d Mbit)\n",tmp);
 	}
 	if(ctx->used_rom_size >= MB){
-		printf("ROM Used Size:          %d MB",ctx->used_rom_size/MB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
+		printf("ROM Used Size:          %lld MB",ctx->used_rom_size/MB); printf(" (0x%llx bytes)\n",ctx->used_rom_size);
 	}
 	else if(ctx->used_rom_size >= KB){
-		printf("ROM Used Size:          %d KB",ctx->used_rom_size/KB); printf(" (0x%x bytes)\n",ctx->used_rom_size);
+		printf("ROM Used Size:          %lld KB",ctx->used_rom_size/KB); printf(" (0x%llx bytes)\n",ctx->used_rom_size);
 	}
 	printf("NCSD Title ID:          %016llx\n",u8_to_u64(header->title_id,LITTLE_ENDIAN));
 	memdump(stdout,"ExHeader Hash:          ",header->exheader_hash,0x20);

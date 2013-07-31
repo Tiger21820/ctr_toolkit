@@ -1,8 +1,26 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
 #include "lib.h"
 #include "ctr_crypto.h"
 #include "ncch.h"
 
-int GetCoreContentNCCH(CIA_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, FILE *ncch)
+int GetCoreContentNCCH(USER_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, FILE *ncch)
 {
 	NCCH_HEADER header = GetNCCHHeader(offset,ncch);
 	if(CheckNCCHHeader(&header) != 0){
@@ -12,9 +30,18 @@ int GetCoreContentNCCH(CIA_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, FI
 	endian_memcpy(core->TitleID,header.title_id,0x8,LE);
 	
 	NCCH_STRUCT *cxi_ctx = malloc(sizeof(NCCH_STRUCT));
+	if(cxi_ctx == NULL){
+		printf("[!] Memory Allocation Failure\n");
+		return Fail;
+	}
 	memset(cxi_ctx,0x0,sizeof(NCCH_STRUCT));
 	GetCXIStruct(cxi_ctx,offset,ncch);
 	
+	//if(ctx->info){
+	//	printf("[+] Content0 NCCH Info\n");
+	//	read_ncch(offset,ncch);	
+	//}
+
 	if(cxi_ctx->is_cfa == True)
 		return 0;
 	
@@ -24,16 +51,16 @@ int GetCoreContentNCCH(CIA_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, FI
 		goto fail_cleanup;
 	}
 	
-	ctx->meta_flag = True;
+	ctx->flags[gen_meta] = True;
 	
 	fseek(ncch,cxi_ctx->exheader_offset+offset,SEEK_SET);
 	fread(ExHeader,cxi_ctx->exheader_size,1,ncch);
-	if(cxi_ctx->encrypted == True){
-		CryptNCCHSection(ExHeader,cxi_ctx,ctx->keys.ncch_key.key,NCCHTYPE_EXHEADER);
+	if(cxi_ctx->encrypted != No_Key){
+		CryptNCCHSection(ExHeader,cxi_ctx,ctx->keys.cxi_key[cxi_ctx->encrypted],NCCHTYPE_EXHEADER);
 		if(memcmp((ExHeader+0x200),cxi_ctx->programID,8) != 0){
 			printf("[!] CXI decryption failed (Check CXIKey)\n");
 			printf("[!] Actual savedata size, title version and Meta region could not be obtained\n");
-			ctx->meta_flag = False;
+			ctx->flags[gen_meta] = False;
 			goto cleanup;
 		}
 	}
@@ -50,12 +77,12 @@ int GetCoreContentNCCH(CIA_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, FI
 	memset(core->twl_data,0,4);
 	
 cleanup:
-	free(cxi_ctx);
-	free(ExHeader);
+	_free(cxi_ctx);
+	_free(ExHeader);
 	return 0;
 fail_cleanup:
-	free(cxi_ctx);
-	free(ExHeader);
+	_free(cxi_ctx);
+	_free(ExHeader);
 	return 1;
 }
 
@@ -63,7 +90,6 @@ void CryptNCCHSection(u8 *buffer, NCCH_STRUCT *ctx, u8 key[16], u8 type)
 {
 	if(type < 1 || type > 3)
 		return;
-	
 	
 	u8 counter[0x10];
 	ncch_get_counter(ctx,counter,type);	
@@ -96,9 +122,13 @@ int CheckNCCHHeader(NCCH_HEADER *header)
 	return 0;
 }
 
-int VerifyNCCH(CIA_CONTEXT *ctx, u32 offset, FILE *ncch)
+int VerifyNCCH(USER_CONTEXT *ctx, u32 offset, FILE *ncch)
 {
 	NCCH_STRUCT *cxi_ctx = malloc(sizeof(NCCH_STRUCT));
+	if(cxi_ctx == NULL){
+		printf("[!] Failed to allocate memory (0x%x bytes) for CXI Context\n",sizeof(NCCH_STRUCT));
+		return 1; 
+	}
 	memset(cxi_ctx,0x0,sizeof(NCCH_STRUCT));
 	GetCXIStruct(cxi_ctx,offset,ncch);
 	
@@ -133,18 +163,22 @@ prep_cxi_validate:
 	//Getting Exheader
 	fseek(ncch,offset+cxi_ctx->exheader_offset,SEEK_SET);
 	u8 *ExHeader = malloc(0x800);
+	if(ExHeader == NULL){
+		printf("[!] Failed to allocate memory (0x%x bytes) for ExHeader\n",0x800);
+		return 1; 
+	}
 	memset(ExHeader,0x0,0x800);
 	fread(ExHeader,0x800,1,ncch);
-	if(cxi_ctx->encrypted == True){
-		CryptNCCHSection(ExHeader,cxi_ctx,ctx->keys.ncch_key.key,NCCHTYPE_EXHEADER);
+	if(cxi_ctx->encrypted != No_Key){
+		CryptNCCHSection(ExHeader,cxi_ctx,ctx->keys.cxi_key[cxi_ctx->encrypted],NCCHTYPE_EXHEADER);
 		if(memcmp((ExHeader+0x200),cxi_ctx->programID,8) != 0){
 			printf("[!] CXI decryption failed\n");
-			free(ExHeader);
+			_free(ExHeader);
 			return 1;
 		}
 	}
 	memcpy(modulus,ExHeader+0x500,0x100);
-	free(ExHeader);
+	_free(ExHeader);
 	goto validate_header;
 }
 
@@ -166,11 +200,13 @@ int GetCXIStruct(NCCH_STRUCT *ctx, u32 offset, FILE *ncch)
 	}
 	u32 media_unit = (0x200*(1+header.flags[6]));
 	resolve_flag(header.flags[7],flag_bool);
-	if(header.flags[7] != 0 && flag_bool[2] == True){
-		ctx->encrypted = False;
+	if(header.flags[7] == 0)
+		ctx->encrypted = Secure;
+	else if(header.flags[7] == 7){
+		ctx->encrypted = No_Key;
 	}
-	else
-		ctx->encrypted = True;
+	else if(flag_bool[1] == True)
+		ctx->encrypted = GetFixedKeyType(header.title_id);
 	
 	ctx->version = u8_to_u16(header.version,LE);
 	if(ctx->is_cfa != True){
@@ -184,29 +220,37 @@ int GetCXIStruct(NCCH_STRUCT *ctx, u32 offset, FILE *ncch)
 	return 0;
 }
 
-int GetCXIMetaPreStruct(META_STRUCT *meta, NCCH_STRUCT *cxi_ctx, CIA_CONTEXT *ctx, u32 offset, FILE *ncch)
+int GetCXIMetaPreStruct(META_STRUCT *meta, NCCH_STRUCT *cxi_ctx, USER_CONTEXT *ctx, u32 offset, FILE *ncch)
 {
 	u8 *ExHeader = malloc(cxi_ctx->exheader_size);
+	if(ExHeader == NULL){
+		printf("[!] Failed to allocate memory (0x%x bytes) for ExeFS\n",cxi_ctx->exheader_size);
+		return 1; 
+	}	
 	fseek(ncch,offset+cxi_ctx->exheader_offset,SEEK_SET);
 	fread(ExHeader,cxi_ctx->exheader_size,1,ncch);
-	if(cxi_ctx->encrypted == True){
-		CryptNCCHSection(ExHeader,cxi_ctx,ctx->keys.ncch_key.key,NCCHTYPE_EXHEADER);
+	if(cxi_ctx->encrypted != No_Key){
+		CryptNCCHSection(ExHeader,cxi_ctx,ctx->keys.cxi_key[cxi_ctx->encrypted],NCCHTYPE_EXHEADER);
 	}
 	
 	memcpy(meta->DependList,(ExHeader+0x40),0x180);
-	memcpy(&meta->CoreVersion,(ExHeader+0x3ff),1);
+	memcpy(meta->CoreVersion,(ExHeader+0x208),4);
 	
-	free(ExHeader);
+	_free(ExHeader);
 	return 0;
 }
 
-int GetCXIIcon(COMPONENT_STRUCT *cxi_icon, NCCH_STRUCT *cxi_ctx, CIA_CONTEXT *ctx, u32 offset, FILE *ncch)
+int GetCXIIcon(COMPONENT_STRUCT *cxi_icon, NCCH_STRUCT *cxi_ctx, USER_CONTEXT *ctx, u32 offset, FILE *ncch)
 {
 	u8 *exefs = malloc(cxi_ctx->exefs_size);
+	if(exefs == NULL){
+		printf("[!] Failed to allocate memory (0x%x bytes) for ExeFS\n",cxi_ctx->exefs_size);
+		return 1; 
+	}
 	fseek(ncch,offset+cxi_ctx->exefs_offset,SEEK_SET);
 	fread(exefs,cxi_ctx->exefs_size,1,ncch);
-	if(cxi_ctx->encrypted == True){
-		CryptNCCHSection(exefs,cxi_ctx,ctx->keys.ncch_key.key,NCCHTYPE_EXEFS);
+	if(cxi_ctx->encrypted != No_Key){
+		CryptNCCHSection(exefs,cxi_ctx,ctx->keys.cxi_key[cxi_ctx->encrypted],NCCHTYPE_EXEFS);
 	}
 	
 	u8 exefs_icon_name[8] = {0x69, 0x63, 0x6F, 0x6E, 0x00, 0x00, 0x00, 0x00};
@@ -224,16 +268,32 @@ int GetCXIIcon(COMPONENT_STRUCT *cxi_icon, NCCH_STRUCT *cxi_ctx, CIA_CONTEXT *ct
 		}
 		if(i == 9){
 			printf("[+] CXI has no Icon\n");
-			free(exefs);
+			_free(exefs);
 			return 0;
 		}
 	}
-	cxi_icon->used = True;
 	cxi_icon->size = icon_size;
 	cxi_icon->buffer = malloc(cxi_icon->size);
+	if(cxi_icon->buffer == NULL){
+		printf("[!] Failed to allocate memory (0x%llx bytes) for storing Icon data\n",cxi_icon->size);
+		return 1; 
+	}
 	memcpy(cxi_icon->buffer,(exefs+icon_offset),cxi_icon->size);
-	free(exefs);
+	_free(exefs);
 	return 0;
+}
+
+int GetFixedKeyType(u8 TitleID[8])
+{
+	u16 tid_cat = u8_to_u16(TitleID+4,LE);
+	u8 bit_flag[16];
+	resolve_flag_u16(tid_cat,bit_flag);
+	if(bit_flag[15] == False && bit_flag[14] == False && bit_flag[4] == True){
+		return SystemFixed;
+	}
+	else{
+		return ZerosFixed;
+	}
 }
 
 void ncch_get_counter(NCCH_STRUCT *ctx, u8 counter[16], u8 type)
@@ -269,38 +329,38 @@ void read_ncch(u32 offset, FILE *ncch)
 {
 	NCCH_HEADER header = GetNCCHHeader(offset,ncch);
 	
-	printf("Product Code:       %s\n",header.product_code);
+	printf(" Product Code:       %s\n",header.product_code);
 	
-	memdump(stdout,"Flags :",header.flags,8);
+	memdump(stdout," Flags :             ",header.flags,8);
 	u8 flag_bool[8];
-	if(header.flags[7] != 0){
+	if(header.flags[7]){
 		resolve_flag(header.flags[7],flag_bool);
-		if(flag_bool[2] == True)
-			printf("Key:                None - Not Encrypted\n");
+		if(header.flags[7] == 4)
+			printf(" > Key:                None - Not Encrypted\n");
 		else if(flag_bool[0] == True)
-			printf("Key:                Fixed\n");
+			printf(" > Key:                Fixed\n");
 	}
 	else
-		printf("Key:                Secure\n");
+		printf(" > Key:                Secure\n");
 	
 	u32 media_unit = (0x200*(1+header.flags[6]));
-	printf("Media Unit:         0x%x\n",media_unit);
+	printf(" > Media Unit:         0x%x\n",media_unit);
 	if(header.flags[5] == 0){
-		printf("[!] CXI Error\n");
+		printf("[!] NCCH Error\n");
 		return;
 	}
 	resolve_flag(header.flags[5],flag_bool);
-	printf("ROMFS Partition:    ");
+	printf(" > RomFS Partition:    ");
 	switch(flag_bool[0]){
 		case True : printf("Yes\n"); break;
 		case False : printf("No\n"); break;
 	}
-	printf("EXEFS Partition:    ");
+	printf(" > ExeFS Partition:    ");
 	switch(flag_bool[1]){
 		case True : printf("Yes\n"); break;
 		case False : printf("No\n"); printf("[!] Error, NCCH file is a CFA\n"); return;
 	}
-	printf("NCCH Type:          ");
+	printf(" > Content Type:       ");
 	if(flag_bool[1] == True){
 		switch(flag_bool[0]){
 			case True : printf("CXI (With ROMFS)"); break;
@@ -319,9 +379,11 @@ void read_ncch(u32 offset, FILE *ncch)
 	if(flag_bool[2] == True && flag_bool[3] == False)
 		printf(" (Retail Update Container)\n");
 	
-	printf("ExHeader Offset:    0x%x\n",0x200);
-	printf("ExHeader Size:      0x%x\n",u8_to_u32(header.extended_header_size,LE));
+	printf(" ExHeader Offset:    0x%x\n",0x200);
+	printf(" ExHeader Size:      0x%x\n",u8_to_u32(header.extended_header_size,LE));
 	
-	printf("EXEFS Offset:       0x%x\n",u8_to_u32(header.exefs_offset,LE)*media_unit);
-	printf("EXEFS Size:         0x%x\n",u8_to_u32(header.exefs_size,LE)*media_unit);
+	printf(" ExeFS Offset:       0x%x\n",u8_to_u32(header.exefs_offset,LE)*media_unit);
+	printf(" ExeFS Size:         0x%x\n",u8_to_u32(header.exefs_size,LE)*media_unit);
+	printf(" RomFS Offset:       0x%x\n",u8_to_u32(header.romfs_offset,LE)*media_unit);
+	printf(" RomFS Size:         0x%x\n",u8_to_u32(header.romfs_size,LE)*media_unit);
 }

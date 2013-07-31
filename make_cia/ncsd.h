@@ -1,3 +1,25 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
+#ifndef _NCSD_H_
+#define _NCSD_H_
+
 #include "ncch.h"
 #define NotChecked 3
 
@@ -111,12 +133,14 @@ typedef struct
 } PARTITION_DATA;
 
 **/
-int NCSDToCIA(CIA_CONTEXT *ctx);
+#endif
 
-int GetNCSDData(CIA_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd);
+int NCSDToCIA(USER_CONTEXT *ctx);
 
-int VerifyNCSD(CIA_CONTEXT *ctx, FILE *ncsd);
-int VerifyNCCHSection(CIA_CONTEXT *ctx, u8 ncch_key[0x10], u32 offset, FILE *ncch);
+int GetNCSDData(USER_CONTEXT *ctx, NCSD_STRUCT *ncsd_struct, FILE *ncsd);
+
+int VerifyNCSD(USER_CONTEXT *ctx, FILE *ncsd);
+int VerifyNCCHSection(USER_CONTEXT *ctx, u8 cxi_key[0x10], u32 offset, FILE *ncch);
 
 void PrintNCSDData(NCSD_STRUCT *ctx, NCSD_HEADER *header, CARD_INFO_HEADER *card_info, DEV_CARD_INFO_HEADER *dev_card_info);
 void GetMin3DSFW(char *FW_STRING, CARD_INFO_HEADER *card_info);

@@ -1,30 +1,65 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
 #include "lib.h"
 #include "ctr_crypto.h"
 #include "tmd.h"
 
-int GenerateTitleMetaData(CIA_CONTEXT *ctx)
+int GenerateTitleMetaData(USER_CONTEXT *ctx)
 {
-	ctx->tmd.used = True;
-	ctx->tmd.size = (0xB04+(0x30*ctx->ContentCount));
-	ctx->tmd.buffer = malloc(ctx->tmd.size);
+	if(ctx->flags[verbose]) { printf("[+] Generating Title Metadata\n"); }
+	ctx->cia_section[tmd].size = (0xB04+(0x30*ctx->ContentCount));
+	ctx->cia_section[tmd].buffer = malloc(ctx->cia_section[tmd].size);
+	if(ctx->cia_section[tmd].buffer == NULL){
+		printf("[!] Memory Allocation Failure\n");
+		return Fail;
+	}
 
 	TMD_STRUCT header;
 	TMD_2048_SIG_CONTEXT sig;
 	memset(&header,0x0,sizeof(TMD_STRUCT));
 	memset(&sig,0x0,sizeof(TMD_2048_SIG_CONTEXT));
+	
+	if(ctx->flags[verbose]) { printf(" > Collecting Data\n"); }	
 	SetTMDHeader(&header,ctx);
 	
+	if(ctx->flags[verbose]) { printf(" > Building Content Info Record\n"); }
 	TMD_CONTENT_INFO_RECORD *info_record = malloc(sizeof(TMD_CONTENT_INFO_RECORD)*0x40);
+	if(info_record == NULL){
+		printf("[!] Memory Allocation Failure\n");
+		return Fail;
+	}
 	memset(info_record,0x0,sizeof(TMD_CONTENT_INFO_RECORD)*0x40);
 	u16_to_u8(info_record->content_index_offset,0x0,BE);
 	u16_to_u8(info_record->content_command_count,ctx->ContentCount,BE);
 	
+	if(ctx->flags[verbose]) { printf(" > Building Content Chunk Record\n"); }
 	TMD_CONTENT_CHUNK_STRUCT *info_chunk = malloc(sizeof(TMD_CONTENT_CHUNK_STRUCT)*ctx->ContentCount);
+	if(info_chunk == NULL){
+		printf("[!] Memory Allocation Failure\n");
+		return Fail;
+	}
 	
 	for(int i = 0; i < ctx->ContentCount; i++){
 		SetInfoChunk(&info_chunk[i],&ctx->ContentInfo[i]);
 	}
 	
+	if(ctx->flags[verbose]) { printf(" > Collecting Hashes\n"); }
 	u32_to_u8(sig.sig_type,RSA_2048_SHA256,BE);
 	u8 hash[0x20];
 	memset(&hash,0x0,0x20);
@@ -34,24 +69,26 @@ int GenerateTitleMetaData(CIA_CONTEXT *ctx)
 	//memdump(stdout,"Info Record Hash:       ",header.sha_256_hash,0x20);
 	ctr_sha_256(&header,sizeof(TMD_STRUCT),hash);
 	//memdump(stdout,"Header Hash:       ",hash,0x20);
+
+	if(ctx->flags[verbose]) { printf(" > Signing TMD\n"); }
 	if(ctr_rsa2048_sha256_sign(hash,sig.data,ctx->keys.tmd.n,ctx->keys.tmd.d) != Good){
 		printf("[!] Failed to sign tmd\n");
-		free(info_record);
-		free(info_chunk);
+		_free(info_record);
+		_free(info_chunk);
 		return ticket_gen_fail;
 	}
 
-	if(ctx->verbose_flag){
+	if(ctx->flags[info]){
 		memdump(stdout,"[+] TMD Signature:      ",sig.data,0x100);
 	}
 	
-	memcpy(ctx->tmd.buffer,&sig,sizeof(TMD_2048_SIG_CONTEXT));
-	memcpy((ctx->tmd.buffer + sizeof(TMD_2048_SIG_CONTEXT)),&header,sizeof(TMD_STRUCT));
-	memcpy((ctx->tmd.buffer + sizeof(TMD_2048_SIG_CONTEXT) + sizeof(TMD_STRUCT)),info_record,(sizeof(TMD_CONTENT_INFO_RECORD)*0x40));
-	memcpy((ctx->tmd.buffer + sizeof(TMD_2048_SIG_CONTEXT) + sizeof(TMD_STRUCT) + (sizeof(TMD_CONTENT_INFO_RECORD)*0x40)),info_chunk,(sizeof(TMD_CONTENT_CHUNK_STRUCT)*ctx->ContentCount));
+	memcpy(ctx->cia_section[tmd].buffer,&sig,sizeof(TMD_2048_SIG_CONTEXT));
+	memcpy((ctx->cia_section[tmd].buffer + sizeof(TMD_2048_SIG_CONTEXT)),&header,sizeof(TMD_STRUCT));
+	memcpy((ctx->cia_section[tmd].buffer + sizeof(TMD_2048_SIG_CONTEXT) + sizeof(TMD_STRUCT)),info_record,(sizeof(TMD_CONTENT_INFO_RECORD)*0x40));
+	memcpy((ctx->cia_section[tmd].buffer + sizeof(TMD_2048_SIG_CONTEXT) + sizeof(TMD_STRUCT) + (sizeof(TMD_CONTENT_INFO_RECORD)*0x40)),info_chunk,(sizeof(TMD_CONTENT_CHUNK_STRUCT)*ctx->ContentCount));
 	
-	free(info_record);
-	free(info_chunk);
+	_free(info_record);
+	_free(info_chunk);
 	
 	return 0;
 }
@@ -65,7 +102,7 @@ void SetInfoChunk(TMD_CONTENT_CHUNK_STRUCT *info_chunk,CONTENT_INFO *ContentInfo
 	memcpy(info_chunk->sha_256_hash,ContentInfo->sha_256_hash,0x20);
 }
 
-void SetTMDHeader(TMD_STRUCT *header,CIA_CONTEXT *ctx)
+void SetTMDHeader(TMD_STRUCT *header,USER_CONTEXT *ctx)
 {
 	memcpy(header->issuer,ctx->core.TMDIssuer,0x40);
 	header->version = ctx->core.tmd_format_ver;

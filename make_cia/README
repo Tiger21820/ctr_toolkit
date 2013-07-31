@@ -1,7 +1,28 @@
 CTR_Toolkit - make_cia - Generates CIA files
-Version: 5.1 2013 (C) 3DSGuy
+Version: 6.0 2013 (C) 3DSGuy
 
 /******** Change Log ********/
+
+Version 6.0:
+* Removed redundant YAML code
+* Meta 'core version' is now retrieved properly
+* Useless data in structs have been removed
+* Not specifying -o or --output=, makes make_cia generate an output name in the same way as ctr_makecia32.
+* Unspecified ContentIDs are now random.
+* File handling is done when a function requires it and is closed in the same function. File pointers are no longer globally available via the main context. 
+* direct use of free(); has been replaced with _free();, which sets the pointer to NULL after freeing, preventing any errors which might occur from attempting to free an invalid pointer.
+* NCSD(ROM) sanity check now present.
+* 99% of malloc'd buffers are verfified to prevent accidents
+* The '-v' and '--verbose' functionality has changed (old functionality has been moved to '-p' and '--info')
+* More General functions moved to utils.c/.h
+* Properly Distributed various typedefs into .h files that made sense, instead of shoving them all into ctx.h
+* dev_keys.h renamed to ctr_keydata.h
+* CIA_CONTEXT, more appropriately renamed to USER_CONTEXT
+* AES keys are handled slightly differently:
+	> make_cia can now detect when a fixed CXI AES key is used, and which one it is
+	> to address this there a three keyslots for cxikey, zerosfixed, systemfixed and secure(user defined as CXIKey '--cxikey=').
+	> Fixed keyslots are hardcoded into make_cia at compile time, but can be overidden with by secure key with --forcecxikey.
+	
 
 Version 5.1:
 * Changed argument strings to prevent make_cia from confusing various commands with other ones
@@ -43,6 +64,7 @@ Usage: make_cia <options>
 OPTIONS                 Possible Values       Explanation
  -h, --help                                   Print this help.
  -v, --verbose                                Enable verbose output.
+ -p, --info                                   Print Info.
  -k, --showkeys                               Show the keys being used.
  -e, --encrypt                                Globally Encrypt CIA Contents
  -o, --out=             File-out              CIA Output
@@ -67,6 +89,7 @@ CRYPTOGRAPHY OPTIONS
  --ckey=                Value                 Common Key
  --ckeyID=              Value                 Common Key ID
  --cxikey=              Value                 CXI Key
+ --forcecxikey                                Overide Fixed CXI keyslots with user CXI Key
  --titlekey=            Value                 Title Key
  --rand                                       Use a Random Title Key
  --tmdkey=              File-in               TMD RSA Keyfile

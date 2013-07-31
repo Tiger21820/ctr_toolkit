@@ -1,3 +1,21 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
 #include "lib.h"
 #include "main.h"
 #include "settings.h"
@@ -8,8 +26,8 @@
 
 typedef enum
 {
-	MAJOR = 5,
-	MINOR = 1
+	MAJOR = 6,
+	MINOR = 0
 } AppVer;
 
 void app_title(void);
@@ -31,7 +49,11 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	CIA_CONTEXT *ctx = malloc(sizeof(CIA_CONTEXT));
+	USER_CONTEXT *ctx = malloc(sizeof(USER_CONTEXT));
+	if(ctx == NULL){
+		printf("[!] Memory Allocation Failure\n");
+		return Fail;
+	}
 	InitialiseSettings(ctx);
 	if(GetSettings(ctx,argc,argv) != 0){
 		printf("[!] Input Error, see '%s -h' for more info\n",argv[0]);
@@ -67,7 +89,7 @@ int main(int argc, char *argv[])
 	free_buffers(ctx);
 	return 0;
 fail_cleanup:
-	if(ctx->outfile.used == False)
+	if(ctx->outfile.arg_len == 0)
 		printf("[!] Failed to generate cia\n");
 	else
 		printf("[!] Failed to generate %s\n",ctx->outfile.argument);
@@ -76,44 +98,24 @@ fail_cleanup:
 
 }
 
-void free_buffers(CIA_CONTEXT *ctx)
+void free_buffers(USER_CONTEXT *ctx)
 {
-	//Closing Files
-	if(ctx->outfile.file.used == True)
-		fclose(ctx->outfile.file.file);
-	if(ctx->configfile.file.used == True)
-		fclose(ctx->configfile.file.file);
-	if(ctx->core_infile.file.used == True)
-		fclose(ctx->core_infile.file.file);
-	
 	//Freeing Arguments
-	if(ctx->outfile.used)
-		free(ctx->outfile.argument);
-	if(ctx->configfile.used)
-		free(ctx->configfile.argument);
-	if(ctx->core_infile.used)
-		free(ctx->core_infile.argument);
+	_free(ctx->outfile.argument);
+	_free(ctx->core_infile.argument);
 	
 	//Freeing CIA section buffers
-	if(ctx->header.used)
-		free(ctx->header.buffer);
-	if(ctx->certchain.used)
-		free(ctx->certchain.buffer);
-	if(ctx->ticket.used)
-		free(ctx->ticket.buffer);
-	if(ctx->tmd.used)
-		free(ctx->tmd.buffer);
-	if(ctx->content.used)
-		free(ctx->content.buffer);
-	if(ctx->meta.used)
-		free(ctx->meta.buffer);
-	if(ctx->ContentInfoMallocFlag)
-		free(ctx->ContentInfo);
-	if(ctx->ncsd_struct_malloc_flag)
-		free(ctx->ncsd_struct);
+	_free(ctx->cia_section[header].buffer);
+	_free(ctx->cia_section[certchain].buffer);
+	_free(ctx->cia_section[tik].buffer);
+	_free(ctx->cia_section[tmd].buffer);
+	_free(ctx->cia_section[content].buffer);
+	_free(ctx->cia_section[meta].buffer);
+	_free(ctx->ContentInfo);
+	_free(ctx->ncsd_struct);
 	
 	//Freeing Main context
-	free(ctx);
+	_free(ctx);
 }
 
 void app_title(void)
@@ -129,6 +131,7 @@ void help(char *app_name)
 	printf("OPTIONS                 Possible Values       Explanation\n");
 	printf(" -h, --help                                   Print this help.\n");
 	printf(" -v, --verbose                                Enable verbose output.\n");
+	printf(" -p, --info                                   Print Info.\n");
 	printf(" -k, --showkeys                               Show the keys being used.\n");
 	printf(" -e, --encrypt                                Globally Encrypt CIA Contents\n");
 	printf(" -o, --out=             File-out              CIA Output\n");
@@ -153,6 +156,7 @@ void help(char *app_name)
 	printf(" --ckey=                Value                 Common Key\n");
 	printf(" --ckeyID=              Value                 Common Key ID\n");
 	printf(" --cxikey=              Value                 CXI Key\n");
+	printf(" --forcecxikey                                Overide Fixed CXI keyslots with user CXI Key\n");
 	printf(" --titlekey=            Value                 Title Key\n");
 	printf(" --rand                                       Use a Random Title Key\n");
 	printf(" --tmdkey=              File-in               TMD RSA Keyfile\n");

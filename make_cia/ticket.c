@@ -1,13 +1,31 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
 #include "lib.h"
 #include "ctr_crypto.h"
 #include "ticket.h"
 
-int GenerateTicket(CIA_CONTEXT *ctx)
+int GenerateTicket(USER_CONTEXT *ctx)
 {
-	ctx->ticket.used = True;
-	ctx->ticket.size = (sizeof(TICKET_STRUCTURE)+ sizeof(TIK_2048_SIG_CONTEXT));
-	ctx->ticket.buffer = malloc(ctx->ticket.size);
-	if(ctx->ticket.buffer == NULL){
+	if(ctx->flags[verbose]) { printf("[+] Generating Ticket\n"); }
+	ctx->cia_section[tik].size = (sizeof(TICKET_STRUCTURE)+ sizeof(TIK_2048_SIG_CONTEXT));
+	ctx->cia_section[tik].buffer = malloc(ctx->cia_section[tik].size);
+	if(ctx->cia_section[tik].buffer == NULL){
 		printf("[!] Failed to allocated memory for ticket\n");
 		return 1;
 	}
@@ -17,6 +35,7 @@ int GenerateTicket(CIA_CONTEXT *ctx)
 	memset(&sig,0x0,sizeof(TIK_2048_SIG_CONTEXT));
 	memset(&ticket,0x0,sizeof(TICKET_STRUCTURE));
 	
+	if(ctx->flags[verbose]) { printf(" > Collecting Data\n"); }
 	ticket.TicketFormatVersion = ctx->core.ticket_format_ver;
 	ticket.ca_crl_version = ctx->core.ca_crl_version;
 	ticket.signer_crl_version = ctx->core.signer_crl_version;
@@ -28,18 +47,19 @@ int GenerateTicket(CIA_CONTEXT *ctx)
 	memcpy(ticket.TitleID,ctx->core.TitleID,0x8);
 	memcpy(ticket.TicketVersion,ctx->core.TicketVersion,0x2);
 	
-	if(EncryptTitleKey(ticket.EncryptedTitleKey,ctx->keys.title_key.key,ctx->keys.common_key.key,ctx->core.TitleID) != 0){
+	if(ctx->flags[verbose]) { printf(" > Encrypting Titlekey\n"); }
+	if(EncryptTitleKey(ticket.EncryptedTitleKey,ctx->keys.title_key,ctx->keys.common_key,ctx->core.TitleID) != 0){
 		printf("[!] Failed to encrypt titlekey\n");
 		return Fail;
 	}
-	if(ctx->showkeys_flag)
+	if(ctx->flags[showkeys])
 		memdump(stdout,"\n[+] Encrypted Title Key:   ",ticket.EncryptedTitleKey,0x10);
 	
 	if(SetStaticData(dev,ticket.StaticData) != 0){
 		printf("[!] ERROR in Generating Ticket\n");
 		return Fail;
 	}
-	
+	if(ctx->flags[verbose]) { printf(" > Signing Ticket\n"); }
 	u32_to_u8(sig.sig_type,RSA_2048_SHA256,BE);
 	u8 hash[0x20];
 	ctr_sha_256(&ticket,sizeof(TICKET_STRUCTURE),hash);
@@ -48,12 +68,12 @@ int GenerateTicket(CIA_CONTEXT *ctx)
 		return ticket_gen_fail;
 	}
 	
-	if(ctx->verbose_flag){
+	if(ctx->flags[info]){
 		memdump(stdout,"[+] Ticket Signature:   ",sig.data,0x100);
 	}
 	
-	memcpy(ctx->ticket.buffer,&sig,sizeof(TIK_2048_SIG_CONTEXT));
-	memcpy((ctx->ticket.buffer + sizeof(TIK_2048_SIG_CONTEXT)),&ticket,sizeof(TICKET_STRUCTURE));
+	memcpy(ctx->cia_section[tik].buffer,&sig,sizeof(TIK_2048_SIG_CONTEXT));
+	memcpy((ctx->cia_section[tik].buffer + sizeof(TIK_2048_SIG_CONTEXT)),&ticket,sizeof(TICKET_STRUCTURE));
 	return 0;
 }
 

@@ -1,3 +1,38 @@
+/**
+Copyright 2013 3DSGuy
+
+This file is part of make_cia.
+
+make_cia is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+make_cia is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with make_cia.  If not, see <http://www.gnu.org/licenses/>.
+**/
+#ifndef _UTILS_H_
+#define _UTILS_H_
+typedef struct
+{
+	char *argument;
+	u16 arg_len;
+} __attribute__((__packed__)) 
+OPTION_CTX;
+
+typedef struct
+{
+	u8 *buffer;
+	u64 size;
+} __attribute__((__packed__)) 
+COMPONENT_STRUCT;
+#endif
+
 //MISC
 void char_to_int_array(unsigned char destination[], char source[], int size, int endianness, int base);
 void endian_memcpy(u8 *destination, u8 *source, u32 size, int endianness);
@@ -6,14 +41,17 @@ void u8_hex_print_le(u8 *array, int len);
 u32 align_value(u32 value, u32 alignment);
 void resolve_flag(unsigned char flag, unsigned char *flag_bool);
 void resolve_flag_u16(u16 flag, unsigned char *flag_bool);
+int append_filextention(char *output, u16 max_outlen, char *input, char extention[]); 
 //IO Related
 void WriteBuffer(void *buffer, u64 size, u64 offset, FILE *output);
+void ReadFile_64(void *outbuff, u64 size, u64 offset, FILE *file);
 u64 GetFileSize_u64(char *filename);
 u32 GetFileSize_u32(FILE *file);
 int TruncateFile_u64(char *filename, u64 filelen);
 int fseek_64(FILE *fp, u64 file_pos, int whence);
 int makedir(const char* dir);
 char *getcwdir(char *buffer,int maxlen);
+void _free(void *ptr); // frees and nullifies pointer
 //Data Size conversion
 u16 u8_to_u16(u8 *value, u8 endianness);
 u32 u8_to_u32(u8 *value, u8 endianness);
