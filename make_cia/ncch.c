@@ -74,7 +74,7 @@ int GetCoreContentNCCH(USER_CONTEXT *ctx, CORE_CONTENT_INFO *core, u32 offset, F
 	u16_to_u8(core->TitleVersion,ver,LE);
 	memcpy(core->save_data_size,ExHeader+0x1c0,4);
 	memset(core->priv_save_data_size,0,4);
-	memset(core->twl_data,0,4);
+	core->twl_flag = 0;
 	
 cleanup:
 	_free(cxi_ctx);

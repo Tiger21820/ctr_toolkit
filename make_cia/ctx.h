@@ -123,7 +123,7 @@ typedef struct
 	u8 tmd_format_ver;
 	u8 save_data_size[4];
 	u8 priv_save_data_size[4];
-	u8 twl_data[4];
+	u8 twl_flag;
 } __attribute__((__packed__)) 
 CORE_CONTENT_INFO;
 

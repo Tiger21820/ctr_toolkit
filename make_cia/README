@@ -1,7 +1,10 @@
 CTR_Toolkit - make_cia - Generates CIA files
-Version: 6.0 2013 (C) 3DSGuy
+Version: 6.1 2013 (C) 3DSGuy
 
 /******** Change Log ********/
+
+Version 6.1:
+* Updated TMD Struct, and code surrounding it
 
 Version 6.0:
 * Removed redundant YAML code

@@ -39,10 +39,9 @@ int GetCoreContentSRL(CORE_CONTENT_INFO *core,FILE *srl)
 	
 	u8 flag_bool[8];
 	resolve_flag(header.reserved_flags[3],flag_bool);
-	memset(core->twl_data,0x0,4);
 	for(int i = 0; i < 3; i++){
 		if(flag_bool[i] == True)
-			core->twl_data[2] += i;
+			core->twl_flag += i;
 	}
 	
 	

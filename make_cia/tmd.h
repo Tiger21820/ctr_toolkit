@@ -70,10 +70,10 @@ typedef struct
 	u8 title_type[4];
 	u8 group_id[2];
 	u8 save_data_size[4];
-	u8 priv_save_data_size[4];
-	u8 reserved_0[2];
-	u8 twl_data[4];
-	u8 reserved[0x30];
+	u8 priv_save_data_size[4]; // Zero for CXI Content0
+	u8 reserved_0[4];
+	u8 twl_flag; // Zero for CXI Content0
+	u8 reserved_1[0x31];
 	u8 access_rights[4];
 	u8 title_version[2];
 	u8 content_count[2];
