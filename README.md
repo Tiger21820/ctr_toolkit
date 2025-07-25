@@ -13,3 +13,4 @@ Legal, open source, 3DS toolkit! Compiles under Linux and Windows(MinGW)!
 
 5/ iconcache_tool - Extracts cached icon data from homemenu extdata
 
+q
