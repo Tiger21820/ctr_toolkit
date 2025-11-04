@@ -1,5 +1,5 @@
 CTR_Toolkit
-=============D
+=============
 
 Legal, open source, 3DS toolkit! Compiles under Linux and Windows(MinGW)!
 
