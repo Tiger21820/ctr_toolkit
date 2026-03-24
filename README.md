@@ -12,3 +12,7 @@ Legal, open source, 3DS toolkit! Compiles under Linux and Windows(MinGW)!
 4/ extdata_tool - Extracts standalone and FS Extdata, and can process Title Database files!
 
 5/ iconcache_tool - Extracts cached icon data from homemenu extdata!
+
+## Links
+
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/ctr-toolkit)
