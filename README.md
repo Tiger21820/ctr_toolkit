@@ -1,6 +1,6 @@
 CTR_Toolkit
 =============
-g
+
 Legal, open source, 3DS toolkit! Compiles under Linux and Windows(MinGW)!
 
 1/ make_cia - Generates CIA files!
